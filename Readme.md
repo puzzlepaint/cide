@@ -60,6 +60,15 @@ In particular, be aware of the following:
 * All files are assumed to be in UTF-8 encoding, and line endings are always saved as `\n` (not `\r\n`).
 
 
+### Precompiled binaries ###
+
+Binary releases are available on [GitHub releases](https://github.com/puzzlepaint/cide/releases).
+Before using them, please also read the recommended setup steps below:
+
+1. [Windows-specific setup](#windows-specific-setup)
+2. [Initial setup](#initial-setup)
+
+
 ### Building ###
 
 The following build dependencies must be present:

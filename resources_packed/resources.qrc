@@ -1,0 +1,9 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource prefix="/cide">
+  <file>cide.png</file>
+  <file>cide.svg</file>
+  <file>error-icon-16x16.png</file>
+  <file>magnifying-glass.png</file>
+  <file>warning-icon-16x16.png</file>
+</qresource>
+</RCC>

@@ -1,0 +1,103 @@
+diff --git a/src/cide/document_widget.cc b/src/cide/document_widget.cc
+index 7d85bf1..db942b7 100644
+--- a/src/cide/document_widget.cc
++++ b/src/cide/document_widget.cc
+@@ -6,6 +6,7 @@
+ #include <clang-c/Index.h>
+ #include <QAction>
+ #include <QClipboard>
++#include <QGlyphRun>
+ #include <QGuiApplication>
+ #include <QMessageBox>
+ #include <QPainter>
+@@ -123,8 +124,11 @@ DocumentWidget::DocumentWidget(const std::shared_ptr<Document>& document, MainWi
+   setFocusPolicy(Qt::ClickFocus);
+   setCursor(Qt::IBeamCursor);
+   
+-  defaultFont = QFont("Monospace", 9);
+-  boldFont = QFont("Monospace", 9, QFont::Bold);
++  defaultFont = QRawFont(QStringLiteral("../resources/Inconsolata/Inconsolata-Regular.ttf"), 15);
++  boldFont = QRawFont(QStringLiteral("../resources/Inconsolata/Inconsolata-Bold.ttf"), 15);
++  
++//   defaultFont = QFont("Monospace", 9);
++//   boldFont = QFont("Monospace", 9, QFont::Bold);
+   
+   QAction* selectAllAction = new QAction(tr("Select all"));
+   selectAllAction->setShortcut(QKeySequence::SelectAll);
+@@ -909,11 +990,11 @@ struct FontStyle {
+   bool bold;
+   
+   void Apply(QPainter* painter, DocumentWidget* widget) const {
+-    if (bold) {
+-      painter->setFont(widget->boldFont);
+-    } else {
+-      painter->setFont(widget->defaultFont);
+-    }
++//     if (bold) {
++//       painter->setFont(widget->boldFont);
++//     } else {
++//       painter->setFont(widget->defaultFont);
++//     }
+     painter->setPen(QPen(textColor));
+   }
+ };
+@@ -924,12 +1005,8 @@ void DocumentWidget::paintEvent(QPaintEvent* event) {
+   painter.setClipRect(rect);
+   
+   // Set font and get its metrics
+-  painter.setFont(defaultFont);
+-  if (!fontMetrics) {
+-    fontMetrics.reset(new QFontMetrics(painter.fontMetrics()));
+-  }
+-  lineHeight = fontMetrics->ascent() + fontMetrics->descent();
+-  charWidth = fontMetrics->/*horizontalAdvance*/ width(' ');
++  lineHeight = defaultFont.ascent() + defaultFont.descent();
++  charWidth = defaultFont.averageCharWidth();  // TODO: cache this
+   
+   // Draw lines
+   painter.setPen(Qt::black);
+@@ -1057,7 +1134,19 @@ void DocumentWidget::paintEvent(QPaintEvent* event) {
+         
+         // Draw text character
+         if (text.at(c) != ' ') {
+-          painter.drawText(QRect(xCoord, currentY, charWidth, lineHeight), Qt::AlignLeft | Qt::AlignTop | Qt::TextSingleLine, text.at(c));
++          QChar character = text[c];
++          int numGlyphs = 1;
++          quint32 glyphIndex;
++          if (defaultFont.glyphIndexesForChars(&character, /*numChars*/ 1, &glyphIndex, &numGlyphs)) {
++            QPointF pos(0, 0);
++            
++            QGlyphRun glyph;
++            glyph.setRawFont(defaultFont);  // TODO: regular or bold
++            glyph.setRawData(&glyphIndex, &pos, 1);
++            painter.drawGlyphRun(QPointF(xCoord, currentY + defaultFont.ascent()), glyph);
++          }
++          
++//           painter.drawText(QRect(xCoord, currentY, charWidth, lineHeight), Qt::AlignLeft | Qt::AlignTop | Qt::TextSingleLine, text.at(c));
+         }
+       }
+       xCoord += charWidth;
+diff --git a/src/cide/document_widget.h b/src/cide/document_widget.h
+index 0aa0c2b..4f37203 100644
+--- a/src/cide/document_widget.h
++++ b/src/cide/document_widget.h
+@@ -2,6 +2,7 @@
+ 
+ #include <memory>
+ 
++#include <QRawFont>
+ #include <QTimer>
+ #include <QWidget>
+ 
+@@ -93,9 +94,8 @@ class DocumentWidget : public QWidget {
+   void keyPressEvent(QKeyEvent* event) override;
+   void wheelEvent(QWheelEvent* event) override;
+   
+-  QFont defaultFont;
+-  QFont boldFont;
+-  std::unique_ptr<QFontMetrics> fontMetrics;
++  QRawFont defaultFont;
++  QRawFont boldFont;
+   int lineHeight = 0;
+   int charWidth = 0;
+   

@@ -11,7 +11,7 @@ namespace version_info {
 }
 
 // Un-comment this to set the release version.
-// #define RELEASE_VERSION "2020-01-27"
+#define RELEASE_VERSION "2020-02-01"
 
 inline QString GetCIDEVersion() {
   #if defined(RELEASE_VERSION)

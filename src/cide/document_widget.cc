@@ -3277,14 +3277,27 @@ void DocumentWidget::keyPressEvent(QKeyEvent* event) {
 void DocumentWidget::wheelEvent(QWheelEvent* event) {
   mouseHoverTimer.stop();
   
-  double degrees = event->delta() / 8.0;
-  double numSteps = degrees / 15.0;
+  QPointF degrees = event->angleDelta() / 8.0;
+  QPointF numSteps = degrees / 15.0;
   
-  int newYScroll = yScroll - 3 * numSteps * lineHeight;
+  int newXScroll = xScroll - 3 * numSteps.x() * lineHeight;
+  newXScroll = std::max(0, newXScroll);
+  if (container->GetScrollbar()->isVisible()) {
+    newXScroll = std::min(container->GetScrollbar()->maximum(), newXScroll);
+  } else {
+    newXScroll = 0;
+  }
+  
+  int newYScroll = yScroll - 3 * numSteps.y() * lineHeight;
   newYScroll = std::max(0, newYScroll);
   newYScroll = std::min(GetMaxYScroll(), newYScroll);
   
-  if (newYScroll != yScroll) {
+  if (newXScroll != xScroll &&
+      newYScroll != yScroll) {
+    SetXYScroll(newXScroll, newYScroll);
+  } else if (newXScroll != xScroll) {
+    SetXScroll(newXScroll);
+  } else if (newYScroll != yScroll) {
     SetYScroll(newYScroll);
   }
 }

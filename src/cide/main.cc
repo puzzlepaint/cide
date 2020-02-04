@@ -59,7 +59,7 @@ void CheckForLeftoverPreambles() {
         nullptr,
         QObject::tr("Preamble files detected"),
         QObject::tr("Found existing preamble files (listed below). These might stem from a previous run of CIDE that crashed."
-                    " However, they could also stem from other programs. Delete those files?\n\n%1").arg(preambleFiles.join('\n')),
+                    " However, they could also stem from other programs or a concurrently running instance of CIDE. Delete those files?\n\n%1").arg(preambleFiles.join('\n')),
         QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
       for (const QString& file : preambleFiles) {
         QFile::remove(backupDir.filePath(file));

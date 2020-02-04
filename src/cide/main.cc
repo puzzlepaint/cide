@@ -77,6 +77,11 @@ int main(int argc, char** argv) {
   QCoreApplication::setOrganizationName("PuzzlePaint");
   QCoreApplication::setOrganizationDomain("puzzlepaint.net");
   QCoreApplication::setApplicationName("CIDE");
+  // This was required to have all wheelEvent()s reported immediately.
+  // Otherwise, they were sometimes buffered together and only reported with
+  // the next wheelEvent() that "got through", which could have been a long
+  // time after the first one, resulting in choppy scrolling.
+  qapp.setAttribute(Qt::AA_CompressHighFrequencyEvents, false);
   
   // Print used libclang version
   qDebug() << "CIDE using libclang" << GetLibclangVersion();

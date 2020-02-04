@@ -222,7 +222,7 @@ void ScrollbarMinimap::MapUpdateThreadMain() {
     Document::CharacterAndStyleIterator it(workingDocument.get());
     for (int line = 0; line < workingLayout.size(); ++ line) {
       const DocumentRange& lineRange = workingLayout[line];
-      while (it.GetCharacterOffset() < lineRange.start.offset) {
+      while (it.IsValid() && it.GetCharacterOffset() < lineRange.start.offset) {
         ++ it;
       }
       
@@ -249,6 +249,7 @@ void ScrollbarMinimap::MapUpdateThreadMain() {
       while (it.GetCharacterOffset() < lineRange.end.offset && charactersInLine < mapWidth) {
         if (!it.IsValid()) {
           qDebug() << "ERROR: Character iterator became invalid while iterating until the line end (according to the layout). Is there a mismatch between the document and the layout?";
+          qDebug() << "line: " << line << ", workingLayout.size(): " << workingLayout.size();
           break;
         }
         if (IsWhitespace(it.GetChar())) {

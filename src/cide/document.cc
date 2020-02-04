@@ -1574,7 +1574,8 @@ void Document::ReadTextFromFile(QFile* file) {
   // Convert text to blocks
   int numBlocks = std::max(1, (fileText.size() + desiredBlockSize / 2) / desiredBlockSize);
   mBlocks.resize(numBlocks);
-  for (int i = 0; i < numBlocks; ++ i) {
+  // Note: This calculation actually overflows for large files if using int for i.
+  for (uint64_t i = 0; i < numBlocks; ++ i) {
     int pos = (i * fileText.size()) / numBlocks;
     int posNext = ((i + 1) * fileText.size()) / numBlocks;
     mBlocks[i].reset(new TextBlock(fileText.mid(pos, posNext - pos), i == 0));

@@ -128,7 +128,13 @@ class Settings : public QObject {
   void ReloadFonts();
   
   inline float GetFontSize() const {
-    return QSettings().value("font_size", 11.f).toFloat();
+    float defaultFontSize = 10.5f;
+    #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+      defaultFontSize = 11;
+    #elif __APPLE__
+      defaultFontSize = 16;
+    #endif
+    return QSettings().value("font_size", defaultFontSize).toFloat();
   }
   
   inline const QFont& GetDefaultFont() const {

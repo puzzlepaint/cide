@@ -18,6 +18,7 @@
 class QPushButton;
 
 
+#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
 // Make it possible to use QString and QByteArray as key in e.g. std::unordered_map.
 namespace std {
   template<> struct hash<QString> {
@@ -32,6 +33,7 @@ namespace std {
     }
   };
 }
+#endif
 
 
 /// Splits paths of the form "filepath:line:column", where line and column are

@@ -206,8 +206,8 @@ Note that the shortcuts are configurable in the program settings.
 
 &nbsp;
 
-- **Ctrl - D** : Comment current line(s)
-- **Ctrl - Shift - D** : Uncomment current line(s)
+- **Ctrl - D** : Comment current line / selection
+- **Ctrl - Shift - D** : Uncomment current line / selection
 
 &nbsp;
 

@@ -132,6 +132,52 @@ void Settings::SetConfigurableColor(Color id, QRgb value) {
   QSettings().setValue(color.keyName, ToHexColorString(value));
 }
 
+void Settings::AddConfigurableTextStyle(TextStyle id, const QString& name, const char* configurationKeyName, bool affectsText, const QRgb& textColor, bool bold, bool affectsBackground, const QRgb& backgroundColor) {
+  QString fullKeyName = QStringLiteral("text_style/") + configurationKeyName;
+  
+  ConfigurableTextStyle style;
+  
+  QSettings settings;
+  if (settings.contains(fullKeyName + QStringLiteral("/affects_text"))) {
+    style.affectsText = settings.value(fullKeyName + QStringLiteral("/affects_text")).toBool();
+    style.textColor = ParseHexColor(settings.value(fullKeyName + QStringLiteral("/text_color")).toString());
+    style.bold = settings.value(fullKeyName + QStringLiteral("/bold")).toBool();
+    style.affectsBackground = settings.value(fullKeyName + QStringLiteral("/affects_background")).toBool();
+    style.backgroundColor = ParseHexColor(settings.value(fullKeyName + QStringLiteral("/background_color")).toString());
+  } else {
+    style.affectsText = affectsText;
+    style.textColor = textColor;
+    style.bold = bold;
+    style.affectsBackground = affectsBackground;
+    style.backgroundColor = backgroundColor;
+  }
+  
+  style.name = name;
+  style.keyName = fullKeyName;
+  
+  configuredTextStyles[static_cast<int>(id)] = style;
+}
+
+void Settings::SetConfigurableTextStyle(TextStyle id, bool affectsText, const QRgb& textColor, bool bold, bool affectsBackground, const QRgb& backgroundColor) {
+  ConfigurableTextStyle& style = configuredTextStyles[static_cast<int>(id)];
+  QSettings settings;
+  
+  style.affectsText = affectsText;
+  settings.setValue(style.keyName + QStringLiteral("/affects_text"), affectsText);
+  
+  style.textColor = textColor;
+  settings.setValue(style.keyName + QStringLiteral("/text_color"), ToHexColorString(textColor));
+  
+  style.bold = bold;
+  settings.setValue(style.keyName + QStringLiteral("/bold"), bold);
+  
+  style.affectsBackground = affectsBackground;
+  settings.setValue(style.keyName + QStringLiteral("/affects_background"), affectsBackground);
+  
+  style.backgroundColor = backgroundColor;
+  settings.setValue(style.keyName + QStringLiteral("/background_color"), ToHexColorString(backgroundColor));
+}
+
 void Settings::ReloadFonts() {
   int regularFontID = QFontDatabase::addApplicationFont(QDir(qApp->applicationDirPath()).filePath("resources/Inconsolata/Inconsolata-Regular.ttf"));
   int boldFontID = QFontDatabase::addApplicationFont(QDir(qApp->applicationDirPath()).filePath("resources/Inconsolata/Inconsolata-Bold.ttf"));
@@ -211,14 +257,26 @@ Settings::Settings() {
   AddConfigurableColor(Color::CurrentLine, tr("Current line background"), "current_line_background", qRgb(248, 247, 246));
   AddConfigurableColor(Color::EditorSelection, tr("Selection background"), "editor_selection", qRgb(148, 202, 239));
   AddConfigurableColor(Color::BookmarkLine, tr("Bookmarked line background"), "bookmark_line", qRgb(229, 229, 255));
-  AddConfigurableColor(Color::ErrorLine, tr("Background color for line with error"), "error_line", qRgb(255, 229, 229));
-  AddConfigurableColor(Color::ErrorUnderline, tr("Underlining color errors"), "error_underline", qRgb(255, 0, 0));
-  AddConfigurableColor(Color::WarningLine, tr("Background color for line with warning"), "warning_line", qRgb(229, 255, 229));
-  AddConfigurableColor(Color::WarningUnderline, tr("Underlining color warnings"), "warning_underline", qRgb(0, 255, 0));
+  AddConfigurableColor(Color::ErrorUnderline, tr("Underlining for errors"), "error_underline", qRgb(255, 0, 0));
+  AddConfigurableColor(Color::WarningUnderline, tr("Underlining for warnings"), "warning_underline", qRgb(0, 255, 0));
   AddConfigurableColor(Color::ColumnMarker, tr("Column marker line color"), "column_marker", qRgb(230, 230, 230));
   AddConfigurableColor(Color::GitDiffAdded, tr("Git diff: Added lines marker"), "git_diff_add", qRgb(0, 255, 0));
   AddConfigurableColor(Color::GitDiffModified, tr("Git diff: Modified lines marker"), "git_diff_modified", qRgb(255, 255, 0));
   AddConfigurableColor(Color::GitDiffRemoved, tr("Git diff: Removed lines marker"), "git_diff_removed", qRgb(255, 0, 0));
+  
+  // Set up the list of text styles which can be configured
+  configuredTextStyles.resize(static_cast<int>(TextStyle::NumTextStyles));
+  AddConfigurableTextStyle(TextStyle::Default, tr("Default"), "default", true, qRgb(0, 0, 0), false, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::JustReplaced, tr("Range just replaced by \"Replace all\""), "just_replaced", false, qRgb(0, 0, 0), false, true, qRgb(236, 189, 237));
+  AddConfigurableTextStyle(TextStyle::ReferenceHighlight, tr("Highlighted reference to the hovered item"), "reference_highlight", false, qRgb(0, 0, 0), false, true, qRgb(127, 255, 0));
+  AddConfigurableTextStyle(TextStyle::CopyHighlight, tr("Highlighted occurrence of the same text as the selection"), "copy_highlight", false, qRgb(0, 0, 0), false, true, qRgb(255, 255, 0));
+  AddConfigurableTextStyle(TextStyle::LeftBracketHighlight, tr("Highlight for bracket left of cursor and its matching bracket"), "left_bracket_highlight", false, qRgb(0, 0, 0), false, true, qRgb(255, 255, 0));
+  AddConfigurableTextStyle(TextStyle::RightBracketHighlight, tr("Highlight for bracket right of cursor and its matching bracket"), "right_bracket_highlight", false, qRgb(0, 0, 0), false, true, qRgb(255, 144, 0));
+  AddConfigurableTextStyle(TextStyle::ErrorInlineDisplay, tr("Inline error display"), "inline_error_display", true, qRgb(150, 127, 127), true, true, qRgb(255, 229, 229));
+  AddConfigurableTextStyle(TextStyle::WarningInlineDisplay, tr("Inline warning display"), "inline_warning_display", true, qRgb(127, 150, 127), true, true, qRgb(229, 255, 229));
+  
+  
+  // AddConfigurableTextStyle(TextStyle::TODO, "TODO", "TODO", TODO, TODO, TODO, TODO, TODO)
 }
 
 void Settings::ShowSettingsWindow(QWidget* parent) {
@@ -631,6 +689,7 @@ void SettingsDialog::UpdateCommentMarkers() {
 }
 
 QWidget* SettingsDialog::CreateColorsCategory() {
+  // "Colors" tab
   colorsTable = new QTableWidget(Settings::Instance().GetNumConfigurableColors(), 2);
   colorsTable->setHorizontalHeaderLabels(QStringList() << "Name" << "Color value");
   colorsTable->setColumnWidth(0, std::max(400, colorsTable->columnWidth(0)));
@@ -654,10 +713,84 @@ QWidget* SettingsDialog::CreateColorsCategory() {
   colorsTable->setSortingEnabled(true);
   colorsTable->sortByColumn(0, Qt::AscendingOrder);
   
+  // "Text styles" tab
+  QLabel* textStyleExplanationLabel = new QLabel(tr("Note that some text style changes may only affect newly opened editor tabs."));
+  textStyleExplanationLabel->setWordWrap(true);
+  
+  textStylesTable = new QTableWidget(Settings::Instance().GetNumConfigurableTextStyles(), 2);
+  textStylesTable->setHorizontalHeaderLabels(QStringList() << "Name" << "Setting");
+  textStylesTable->setColumnWidth(0, std::max(400, textStylesTable->columnWidth(0)));
+  textStylesTable->verticalHeader()->hide();
+  
+  for (int row = 0; row < Settings::Instance().GetNumConfigurableTextStyles(); ++ row) {
+    const Settings::ConfigurableTextStyle& style = Settings::Instance().GetConfiguredTextStyle(static_cast<Settings::TextStyle>(row));
+    
+    QTableWidgetItem* newItem = new QTableWidgetItem(style.name);
+    newItem->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+    newItem->setData(Qt::UserRole, row);
+    textStylesTable->setItem(row, 0, newItem);
+    
+    newItem = new QTableWidgetItem(tr("example text"));
+    newItem->setFlags(Qt::ItemIsEnabled);
+    UpdateTextStyleItem(newItem, style);
+    newItem->setData(Qt::UserRole, row);
+    textStylesTable->setItem(row, 1, newItem);
+  }
+  
+  textStylesTable->setSortingEnabled(true);
+  textStylesTable->sortByColumn(0, Qt::AscendingOrder);
+  
+  affectsTextCheck = new QCheckBox(tr("Affects the text"));
+  textColorLabel = new QLabel();
+  UpdateTextColorLabel(qRgb(0, 0, 0));  // just for the default text
+  textColorButton = new QPushButton(tr("Select"));
+  boldCheck = new QCheckBox(tr("Use bold font"));
+  
+  affectsBackgroundCheck = new QCheckBox(tr("Affects the background color"));
+  backgroundColorLabel = new QLabel();
+  UpdateBackgroundColorLabel(qRgb(255, 255, 255));  // just for the default text
+  backgroundColorButton = new QPushButton(tr("Select"));
+  
+  QVBoxLayout* textSettingsLayout = new QVBoxLayout();
+  textSettingsLayout->addWidget(affectsTextCheck);
+  QHBoxLayout* textColorLayout = new QHBoxLayout();
+  textColorLayout->addWidget(textColorLabel);
+  textColorLayout->addWidget(textColorButton);
+  textColorLayout->addStretch(1);
+  textSettingsLayout->addLayout(textColorLayout);
+  textSettingsLayout->addWidget(boldCheck);
+  
+  QVBoxLayout* backgroundSettingsLayout = new QVBoxLayout();
+  backgroundSettingsLayout->addWidget(affectsBackgroundCheck);
+  QHBoxLayout* backgroundColorLayout = new QHBoxLayout();
+  backgroundColorLayout->addWidget(backgroundColorLabel);
+  backgroundColorLayout->addWidget(backgroundColorButton);
+  backgroundColorLayout->addStretch(1);
+  backgroundSettingsLayout->addLayout(backgroundColorLayout);
+  
+  QHBoxLayout* settingsLayout = new QHBoxLayout();
+  settingsLayout->addLayout(textSettingsLayout, 1);
+  settingsLayout->addLayout(backgroundSettingsLayout, 1);
+  
+  QVBoxLayout* textStylesLayout = new QVBoxLayout();
+  textStylesLayout->addWidget(textStyleExplanationLabel);
+  textStylesLayout->addWidget(textStylesTable);
+  textStylesLayout->addLayout(settingsLayout);
+  
+  QWidget* textStylesContainer = new QWidget();
+  textStylesContainer->setLayout(textStylesLayout);
+  
+  // Tab widget and general layout.
+  QTabWidget* tabWidget = new QTabWidget();
+  tabWidget->addTab(colorsTable, tr("Colors"));
+  tabWidget->addTab(textStylesContainer, tr("Text styles"));
+  
   QVBoxLayout* layout = new QVBoxLayout();
-  layout->addWidget(colorsTable);
+  layout->addWidget(tabWidget);
   
   // --- Connections ---
+  listenToColorUpdates = true;
+  
   connect(colorsTable, &QTableWidget::itemClicked, [&](QTableWidgetItem* item) {
     Settings::Color colorId = static_cast<Settings::Color>(item->data(Qt::UserRole).toInt());
     const Settings::ConfigurableColor& color = Settings::Instance().GetConfigurableColor(colorId);
@@ -669,9 +802,94 @@ QWidget* SettingsDialog::CreateColorsCategory() {
     }
   });
   
+  connect(affectsTextCheck, &QCheckBox::stateChanged, [&](int state) {
+    textColorLabel->setEnabled(state == Qt::Checked);
+    textColorButton->setEnabled(state == Qt::Checked);
+    boldCheck->setEnabled(state == Qt::Checked);
+    EditCurrentTextStyle([&](Settings::ConfigurableTextStyle* style) { style->affectsText = state == Qt::Checked; });
+  });
+  connect(textColorButton, &QPushButton::clicked, [&]() {
+    EditCurrentTextStyle([&](Settings::ConfigurableTextStyle* style) {
+      QColor result = QColorDialog::getColor(style->textColor, this);
+      if (result.isValid()) {
+        style->textColor = result.rgb();
+        UpdateTextColorLabel(result.rgb());
+      }
+    });
+  });
+  connect(boldCheck, &QCheckBox::stateChanged, [&](int state) {
+    EditCurrentTextStyle([&](Settings::ConfigurableTextStyle* style) { style->bold = state == Qt::Checked; });
+  });
+  connect(affectsBackgroundCheck, &QCheckBox::stateChanged, [&](int state) {
+    backgroundColorLabel->setEnabled(state == Qt::Checked);
+    backgroundColorButton->setEnabled(state == Qt::Checked);
+    EditCurrentTextStyle([&](Settings::ConfigurableTextStyle* style) { style->affectsBackground = state == Qt::Checked; });
+  });
+  connect(backgroundColorButton, &QPushButton::clicked, [&]() {
+    EditCurrentTextStyle([&](Settings::ConfigurableTextStyle* style) {
+      QColor result = QColorDialog::getColor(style->backgroundColor, this);
+      if (result.isValid()) {
+        style->backgroundColor = result.rgb();
+        UpdateBackgroundColorLabel(result.rgb());
+      }
+    });
+  });
+  connect(textStylesTable, &QTableWidget::currentItemChanged, [&](QTableWidgetItem* item, QTableWidgetItem* /*previous*/) {
+    affectsTextCheck->setEnabled(item != nullptr);
+    textColorLabel->setEnabled(item != nullptr);
+    textColorButton->setEnabled(item != nullptr);
+    boldCheck->setEnabled(item != nullptr);
+    affectsBackgroundCheck->setEnabled(item != nullptr);
+    backgroundColorLabel->setEnabled(item != nullptr);
+    backgroundColorButton->setEnabled(item != nullptr);
+    if (!item) {
+      return;
+    }
+    Settings::TextStyle styleId = static_cast<Settings::TextStyle>(item->data(Qt::UserRole).toInt());
+    const Settings::ConfigurableTextStyle& style = Settings::Instance().GetConfiguredTextStyle(styleId);
+    
+    listenToColorUpdates = false;
+    
+    affectsTextCheck->setChecked(style.affectsText);
+    UpdateTextColorLabel(style.textColor);
+    boldCheck->setChecked(style.bold);
+    affectsBackgroundCheck->setChecked(style.affectsBackground);
+    UpdateBackgroundColorLabel(style.backgroundColor);
+    
+    listenToColorUpdates = true;
+  });
+  emit textStylesTable->currentItemChanged(textStylesTable->currentItem(), nullptr);
+  
   QWidget* categoryWidget = new QWidget();
   categoryWidget->setLayout(layout);
   return categoryWidget;
+}
+
+void SettingsDialog::UpdateTextColorLabel(const QRgb& color) {
+  textColorLabel->setText(tr("Text color: <span style=\"background-color:#%1\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>").arg(ToHexColorString(color)));
+}
+
+void SettingsDialog::UpdateBackgroundColorLabel(const QRgb& color) {
+  backgroundColorLabel->setText(tr("Background color: <span style=\"background-color:#%1\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>").arg(ToHexColorString(color)));
+}
+
+void SettingsDialog::UpdateTextStyleItem(QTableWidgetItem* item, const Settings::ConfigurableTextStyle& style) {
+  QFont font = style.bold ? Settings::Instance().GetBoldFont() : Settings::Instance().GetDefaultFont();
+  item->setFont(font);
+  
+  if (style.affectsText) {
+    item->setTextColor(style.textColor);
+  } else {
+    QTableWidgetItem defaultItem;
+    item->setTextColor(defaultItem.textColor());
+  }
+  
+  if (style.affectsBackground) {
+    item->setBackground(QBrush(style.backgroundColor));
+  } else {
+    QTableWidgetItem defaultItem;
+    item->setBackground(defaultItem.background());
+  }
 }
 
 QWidget* SettingsDialog::CreateDebuggingCategory() {

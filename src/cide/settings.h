@@ -12,17 +12,18 @@
 #include <QFont>
 #include <QListWidget>
 #include <QSettings>
+#include <QTableWidget>
 
 #include "cide/util.h"
 
 class ActionWithConfigurableShortcut;
 class QCheckBox;
 class QComboBox;
+class QLabel;
 class QLineEdit;
 class QPlainTextEdit;
 class QPushButton;
 class QStackedLayout;
-class QTableWidget;
 
 
 struct WordCompletion {
@@ -111,15 +112,26 @@ class Settings : public QObject {
     CurrentLine,
     EditorSelection,
     BookmarkLine,
-    ErrorLine,
     ErrorUnderline,
-    WarningLine,
     WarningUnderline,
     ColumnMarker,
     GitDiffAdded,
     GitDiffModified,
     GitDiffRemoved,
     NumColors
+  };
+  
+  /// List of configurable text styles
+  enum class TextStyle {
+    Default = 0,
+    JustReplaced,
+    ReferenceHighlight,
+    CopyHighlight,
+    LeftBracketHighlight,
+    RightBracketHighlight,
+    ErrorInlineDisplay,
+    WarningInlineDisplay,
+    NumTextStyles
   };
   
   struct ConfigurableShortcut {
@@ -145,6 +157,31 @@ class Settings : public QObject {
     QRgb value;
   };
   
+  struct ConfigurableTextStyle {
+    ConfigurableTextStyle() = default;
+    
+    inline ConfigurableTextStyle(const QString& name, const QString& keyName, bool affectsText, const QRgb& textColor, bool bold, bool affectsBackground, const QRgb& backgroundColor)
+        : name(name),
+          keyName(keyName),
+          affectsText(affectsText),
+          textColor(textColor),
+          bold(bold),
+          affectsBackground(affectsBackground),
+          backgroundColor(backgroundColor) {}
+    
+    QString name;
+    QString keyName;
+    
+    /// Whether the textColor and bold attributes should be used.
+    bool affectsText;
+    QRgb textColor;
+    bool bold;
+    
+    /// Whether the backgroundColor attribute should be used.
+    bool affectsBackground;
+    QRgb backgroundColor;
+  };
+  
   
   static Settings& Instance();
   
@@ -158,9 +195,14 @@ class Settings : public QObject {
   
   void AddConfigurableColor(Color id, const QString& name, const char* configurationKeyName, const QRgb& defaultValue);
   inline int GetNumConfigurableColors() const { return static_cast<int>(Color::NumColors); }
-  inline QRgb GetConfiguredColor(Color id) { return configuredColors[static_cast<int>(id)].value; }
+  inline QRgb GetConfiguredColor(Color id) const { return configuredColors[static_cast<int>(id)].value; }
   inline const ConfigurableColor& GetConfigurableColor(Color id) { return configuredColors[static_cast<int>(id)]; }
   void SetConfigurableColor(Color id, QRgb value);
+  
+  void AddConfigurableTextStyle(TextStyle id, const QString& name, const char* configurationKeyName, bool affectsText, const QRgb& textColor, bool bold, bool affectsBackground, const QRgb& backgroundColor);
+  inline int GetNumConfigurableTextStyles() const { return static_cast<int>(TextStyle::NumTextStyles); }
+  inline const ConfigurableTextStyle& GetConfiguredTextStyle(TextStyle id) const { return configuredTextStyles[static_cast<int>(id)]; }
+  void SetConfigurableTextStyle(TextStyle id, bool affectsText, const QRgb& textColor, bool bold, bool affectsBackground, const QRgb& backgroundColor);
   
   
   /// (Re-)loads the fonts. This must be done after changing the font size.
@@ -367,6 +409,9 @@ class Settings : public QObject {
   
   /// Indexed by static_cast<int>(color_id) with color_id of type Color.
   std::vector<ConfigurableColor> configuredColors;
+  
+  /// Indexed by static_cast<int>(textstyle_id) with textstyle_id of type TextStyle.
+  std::vector<ConfigurableTextStyle> configuredTextStyles;
 };
 
 
@@ -443,8 +488,32 @@ class SettingsDialog : public QDialog {
   
   // "Colors" category
   QWidget* CreateColorsCategory();
+  void UpdateTextColorLabel(const QRgb& color);
+  void UpdateBackgroundColorLabel(const QRgb& color);
+  void UpdateTextStyleItem(QTableWidgetItem* item, const Settings::ConfigurableTextStyle& style);
   
+  template <typename Callable>
+  void EditCurrentTextStyle(Callable editFunc) {
+    QTableWidgetItem* item = textStylesTable->currentItem();
+    if (listenToColorUpdates && item) {
+      Settings::TextStyle styleId = static_cast<Settings::TextStyle>(item->data(Qt::UserRole).toInt());
+      Settings::ConfigurableTextStyle style = Settings::Instance().GetConfiguredTextStyle(styleId);
+      editFunc(&style);
+      Settings::Instance().SetConfigurableTextStyle(styleId, style.affectsText, style.textColor, style.bold, style.affectsBackground, style.backgroundColor);
+      UpdateTextStyleItem(textStylesTable->item(item->row(), 1), style);
+    }
+  }
+  
+  bool listenToColorUpdates;
   QTableWidget* colorsTable;
+  QTableWidget* textStylesTable;
+  QCheckBox* affectsTextCheck;
+  QLabel* textColorLabel;
+  QPushButton* textColorButton;
+  QCheckBox* boldCheck;
+  QCheckBox* affectsBackgroundCheck;
+  QLabel* backgroundColorLabel;
+  QPushButton* backgroundColorButton;
   
   // "Debugging" category
   QWidget* CreateDebuggingCategory();

@@ -10,6 +10,7 @@
 #include <QFile>
 
 #include "cide/qt_thread.h"
+#include "cide/settings.h"
 #include "cide/text_utils.h"
 
 
@@ -383,14 +384,15 @@ Document::Document(int desiredBlockSize)
   creatingCombinedUndoStep = false;
   
   // Add default font style
+  const auto& defaultStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::Default);
   for (int layer = 0; layer < TextBlock::kLayerCount; ++ layer) {
     mRanges[layer].emplace_back(
         /*range*/ DocumentRange::Invalid(),
         /*affectsText*/ layer == 0,
-        /*textColor*/ qRgb(0, 0, 0),
-        /*bold*/ false,
-        /*affectsBackground*/ false,
-        /*backgroundColor*/ qRgb(255, 255, 255),
+        /*textColor*/ defaultStyle.textColor,
+        /*bold*/ defaultStyle.bold,
+        /*affectsBackground*/ defaultStyle.affectsBackground,
+        /*backgroundColor*/ defaultStyle.backgroundColor,
         /*isNonCodeRange*/ false);
   }
 }

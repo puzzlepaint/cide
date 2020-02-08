@@ -320,8 +320,9 @@ void DocumentWidget::ReplaceAll(const QString& find, const QString& replacement,
   }
   
   GetDocument()->ClearHighlightRanges(kHighlightLayer);
+  const auto& justReplacedStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::JustReplaced);
   for (const DocumentRange& range : replacedRanges) {
-    GetDocument()->AddHighlightRange(range, false, qRgb(0, 0, 0), false, false, true, qRgb(236, 189, 237), kHighlightLayer);
+    GetDocument()->AddHighlightRange(range, false, justReplacedStyle, kHighlightLayer);
   }
   
   update(rect());
@@ -634,8 +635,9 @@ void DocumentWidget::SetCodeTooltip(const DocumentRange& tooltipRange, const QSt
   // Update the reference highlighting.
   if (!codeHtml.isEmpty() && selection.IsEmpty()) {
     RemoveHighlights();
+    const auto& referenceHighlightStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ReferenceHighlight);
     for (const DocumentRange& range : referenceRanges) {
-      document->AddHighlightRange(range, false, qRgb(0, 0, 0), false, false, true, qRgb(127, 255, 0), /*layer*/ kHighlightLayer);
+      document->AddHighlightRange(range, false, referenceHighlightStyle, /*layer*/ kHighlightLayer);
     }
     document->FinishedHighlightingChanges();
     update(rect());
@@ -1114,8 +1116,9 @@ void DocumentWidget::RequestPhraseHighlight(const QString& phrase) {
   if (occurrences.empty()) {
     return;
   } else {
+    const auto& copyHighlightStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::CopyHighlight);
     for (const DocumentRange& range : occurrences) {
-      document->AddHighlightRange(range, false, qRgb(0, 0, 0), false, false, true, qRgb(255, 255, 0), /*layer*/ kHighlightLayer);
+      document->AddHighlightRange(range, false, copyHighlightStyle, /*layer*/ kHighlightLayer);
     }
     document->FinishedHighlightingChanges();
     update(rect());
@@ -1139,7 +1142,7 @@ void DocumentWidget::CheckBracketHighlight() {
   Document::CharacterAndStyleIterator it(document.get(), cursorLoc.offset);
   
   // Checks for a bracket to the right of pos
-  auto checkBracketHighlight = [&](const Document::CharacterAndStyleIterator& pos, const QColor& highlightColor) {
+  auto checkBracketHighlight = [&](const Document::CharacterAndStyleIterator& pos, const Settings::TextStyle highlightStyleType) {
     if (pos.GetStyleOfLayer(0).isNonCodeRange) {
       // Do not try to match brackets within string literals or comments
       return;
@@ -1147,15 +1150,16 @@ void DocumentWidget::CheckBracketHighlight() {
     int matchOffset = document->FindMatchingBracket(pos);
     if (matchOffset != -1) {
       int posOffset = pos.GetCharacterOffset();
-      document->AddHighlightRange(DocumentRange(posOffset, posOffset + 1), false, qRgb(0, 0, 0), false, false, true, highlightColor, /*layer*/ kHighlightLayer);
-      document->AddHighlightRange(DocumentRange(matchOffset, matchOffset + 1), false, qRgb(0, 0, 0), false, false, true, highlightColor, /*layer*/ kHighlightLayer);
+      const auto& highlightStyle = Settings::Instance().GetConfiguredTextStyle(highlightStyleType);
+      document->AddHighlightRange(DocumentRange(posOffset, posOffset + 1), false, highlightStyle, /*layer*/ kHighlightLayer);
+      document->AddHighlightRange(DocumentRange(matchOffset, matchOffset + 1), false, highlightStyle, /*layer*/ kHighlightLayer);
       update(rect());
     }
   };
   
   // Check for a bracket to the right of the cursor
   if (it.IsValid()) {
-    checkBracketHighlight(it, qRgb(255, 144, 0));
+    checkBracketHighlight(it, Settings::TextStyle::RightBracketHighlight);
     -- it;
   } else {
     it = Document::CharacterAndStyleIterator(document.get(), cursorLoc.offset - 1);
@@ -1163,7 +1167,7 @@ void DocumentWidget::CheckBracketHighlight() {
   
   // Check for a bracket to the left of the cursor
   if (it.IsValid()) {
-    checkBracketHighlight(it, qRgb(255, 255, 0));
+    checkBracketHighlight(it, Settings::TextStyle::LeftBracketHighlight);
   }
 }
 
@@ -2436,29 +2440,32 @@ void DocumentWidget::resizeEvent(QResizeEvent* /*event*/) {
 }
 
 void DocumentWidget::paintEvent(QPaintEvent* event) {
-  QRgb editorBackgroundColor = Settings::Instance().GetConfiguredColor(Settings::Color::EditorBackground);
-  QColor sidebarDefaultColor = palette().window().color();
-  QRgb highlightTrailingSpaceColor = Settings::Instance().GetConfiguredColor(Settings::Color::TrailingSpaceHighlight);
-  QRgb outsideOfContextLineColor = Settings::Instance().GetConfiguredColor(Settings::Color::OutsizeOfContextLine);
-  QRgb highlightLineColor = Settings::Instance().GetConfiguredColor(Settings::Color::CurrentLine);
-  QRgb selectionColor = Settings::Instance().GetConfiguredColor(Settings::Color::EditorSelection);
-  QRgb bookmarkColor = Settings::Instance().GetConfiguredColor(Settings::Color::BookmarkLine);
-  QRgb errorColor = Settings::Instance().GetConfiguredColor(Settings::Color::ErrorLine);
-  QRgb errorUnderlineColor = Settings::Instance().GetConfiguredColor(Settings::Color::ErrorUnderline);
-  QRgb warningColor = Settings::Instance().GetConfiguredColor(Settings::Color::WarningLine);
-  QRgb warningUnderlineColor = Settings::Instance().GetConfiguredColor(Settings::Color::WarningUnderline);
-  QRgb columnMarkerColor = Settings::Instance().GetConfiguredColor(Settings::Color::ColumnMarker);
-  QRgb gitDiffAddedColor = Settings::Instance().GetConfiguredColor(Settings::Color::GitDiffAdded);
-  QRgb gitDiffModifiedColor = Settings::Instance().GetConfiguredColor(Settings::Color::GitDiffModified);
-  QRgb gitDiffRemovedColor = Settings::Instance().GetConfiguredColor(Settings::Color::GitDiffRemoved);
+  auto& settings = Settings::Instance();
   
-  bool highlightCurrentLine = Settings::Instance().GetHighlightCurrentLine();
-  bool highlightTrailingSpaces = Settings::Instance().GetHighlightTrailingSpaces();
-  bool darkenNonContextRegions = Settings::Instance().GetDarkenNonContextRegions();
-  bool showColumnMarker = Settings::Instance().GetShowColumnMarker();
+  QRgb editorBackgroundColor = settings.GetConfiguredColor(Settings::Color::EditorBackground);
+  QColor sidebarDefaultColor = palette().window().color();
+  QRgb highlightTrailingSpaceColor = settings.GetConfiguredColor(Settings::Color::TrailingSpaceHighlight);
+  QRgb outsideOfContextLineColor = settings.GetConfiguredColor(Settings::Color::OutsizeOfContextLine);
+  QRgb highlightLineColor = settings.GetConfiguredColor(Settings::Color::CurrentLine);
+  QRgb selectionColor = settings.GetConfiguredColor(Settings::Color::EditorSelection);
+  QRgb bookmarkColor = settings.GetConfiguredColor(Settings::Color::BookmarkLine);
+  QRgb errorUnderlineColor = settings.GetConfiguredColor(Settings::Color::ErrorUnderline);
+  QRgb warningUnderlineColor = settings.GetConfiguredColor(Settings::Color::WarningUnderline);
+  QRgb columnMarkerColor = settings.GetConfiguredColor(Settings::Color::ColumnMarker);
+  QRgb gitDiffAddedColor = settings.GetConfiguredColor(Settings::Color::GitDiffAdded);
+  QRgb gitDiffModifiedColor = settings.GetConfiguredColor(Settings::Color::GitDiffModified);
+  QRgb gitDiffRemovedColor = settings.GetConfiguredColor(Settings::Color::GitDiffRemoved);
+  const auto& defaultStyle = settings.GetConfiguredTextStyle(Settings::TextStyle::Default);
+  const auto& inlineErrorStyle = settings.GetConfiguredTextStyle(Settings::TextStyle::ErrorInlineDisplay);
+  const auto& inlineWarningStyle = settings.GetConfiguredTextStyle(Settings::TextStyle::WarningInlineDisplay);
+  
+  bool highlightCurrentLine = settings.GetHighlightCurrentLine();
+  bool highlightTrailingSpaces = settings.GetHighlightTrailingSpaces();
+  bool darkenNonContextRegions = settings.GetDarkenNonContextRegions();
+  bool showColumnMarker = settings.GetShowColumnMarker();
   int columnMarkerX = -1;
   if (showColumnMarker) {
-    columnMarkerX = -xScroll + sidebarWidth + charWidth * Settings::Instance().GetColumnMarkerPosition();
+    columnMarkerX = -xScroll + sidebarWidth + charWidth * settings.GetColumnMarkerPosition();
   }
   
   // Re-layout?
@@ -2713,6 +2720,8 @@ void DocumentWidget::paintEvent(QPaintEvent* event) {
     if (lastProblemInLine >= 0) {
       const std::shared_ptr<Problem>& problem = document->problems()[lastProblemInLine];
       
+      auto& problemStyle = (problem->type() == Problem::Type::Warning) ? inlineWarningStyle : inlineErrorStyle;
+      
       const int lineToDescriptionMargin = 3 * charWidth;
       const int descriptionToFixitMargin = 3 * charWidth;
       
@@ -2734,21 +2743,25 @@ void DocumentWidget::paintEvent(QPaintEvent* event) {
       
       // Draw problem icon
       // TODO: Avoid the overdraw of the colored background here with the general background above
-      painter.fillRect(descriptionStartX + iconSize.width() / 2, currentY, iconSize.width() + charWidth - iconSize.width() / 2, lineHeight, (problem->type() == Problem::Type::Warning) ? warningColor : errorColor);
+      if (problemStyle.affectsBackground) {
+        painter.fillRect(descriptionStartX + iconSize.width() / 2, currentY, iconSize.width() + charWidth - iconSize.width() / 2, lineHeight, problemStyle.backgroundColor);
+      }
       painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
       painter.drawImage(QRect(descriptionStartX, currentY, iconSize.width(), iconSize.height()),
                         (problem->type() == Problem::Type::Warning) ? warningIcon : errorIcon);
       
       // Draw inline problem text
       int inlineTextStartX = descriptionStartX + iconAndSpaceWidth;
-      painter.setPen(qRgb(127, 127, 127));
+      painter.setPen(problemStyle.affectsText ? problemStyle.textColor : defaultStyle.textColor);
       painter.setFont(Settings::Instance().GetBoldFont());
       for (int i = 0;
            i < lineLen &&
                inlineTextStartX + i * charWidth < width();
            ++ i) {
         // TODO: Avoid the overdraw of the colored background here with the general background above
-        painter.fillRect(inlineTextStartX + i * charWidth, currentY, charWidth, lineHeight, (problem->type() == Problem::Type::Warning) ? warningColor : errorColor);
+        if (problemStyle.affectsBackground) {
+          painter.fillRect(inlineTextStartX + i * charWidth, currentY, charWidth, lineHeight, problemStyle.backgroundColor);
+        }
         painter.drawText(QRect(inlineTextStartX + i * charWidth, currentY, charWidth, lineHeight), Qt::AlignLeft | Qt::AlignTop | Qt::TextSingleLine, text.at(i));
       }
       

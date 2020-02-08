@@ -18,6 +18,7 @@
 #include "cide/clang_tu_pool.h"
 #include "cide/document_range.h"
 #include "cide/problem.h"
+#include "cide/settings.h"
 #include "cide/text_block.h"
 
 enum class LineAttribute {
@@ -469,6 +470,9 @@ class Document : public QObject {
   
   /// Highlight ranges.
   void AddHighlightRange(const DocumentRange& range, bool isNonCodeRange, const QColor& textColor, bool bold, bool affectsText = true, bool affectsBackground = false, const QColor& backgroundColor = qRgb(255, 255, 255), int layer = 0);
+  inline void AddHighlightRange(const DocumentRange& range, bool isNonCodeRange, const Settings::ConfigurableTextStyle& style, int layer = 0) {
+    AddHighlightRange(range, isNonCodeRange, style.textColor, style.bold, style.affectsText, style.affectsBackground, style.backgroundColor, layer);
+  }
   void ClearHighlightRanges(int layer);
   inline std::vector<HighlightRange>& GetHighlightRanges(int layer) { return mRanges[layer]; }
   /// To be called after adding/clearing highlight ranges.

@@ -1839,7 +1839,7 @@ void DocumentWidget::UpdateTooltip(
     tooltipProblemsFrame->setLayout(layout);
   }
   
-  // Create the "Code" part of the tooltip?
+  // Create the "Code info" part of the tooltip?
   QFrame* codeFrame = nullptr;
   tooltipCodeHtmlLabel = nullptr;
   if (isVisible() && !tooltipCodeHtml.isEmpty()) {
@@ -2436,7 +2436,22 @@ void DocumentWidget::resizeEvent(QResizeEvent* /*event*/) {
 }
 
 void DocumentWidget::paintEvent(QPaintEvent* event) {
+  QRgb editorBackgroundColor = Settings::Instance().GetConfiguredColor(Settings::Color::EditorBackground);
   QColor sidebarDefaultColor = palette().window().color();
+  QRgb highlightTrailingSpaceColor = Settings::Instance().GetConfiguredColor(Settings::Color::TrailingSpaceHighlight);
+  QRgb outsideOfContextLineColor = Settings::Instance().GetConfiguredColor(Settings::Color::OutsizeOfContextLine);
+  QRgb highlightLineColor = Settings::Instance().GetConfiguredColor(Settings::Color::CurrentLine);
+  QRgb selectionColor = Settings::Instance().GetConfiguredColor(Settings::Color::EditorSelection);
+  QRgb bookmarkColor = Settings::Instance().GetConfiguredColor(Settings::Color::BookmarkLine);
+  QRgb errorColor = Settings::Instance().GetConfiguredColor(Settings::Color::ErrorLine);
+  QRgb errorUnderlineColor = Settings::Instance().GetConfiguredColor(Settings::Color::ErrorUnderline);
+  QRgb warningColor = Settings::Instance().GetConfiguredColor(Settings::Color::WarningLine);
+  QRgb warningUnderlineColor = Settings::Instance().GetConfiguredColor(Settings::Color::WarningUnderline);
+  QRgb columnMarkerColor = Settings::Instance().GetConfiguredColor(Settings::Color::ColumnMarker);
+  QRgb gitDiffAddedColor = Settings::Instance().GetConfiguredColor(Settings::Color::GitDiffAdded);
+  QRgb gitDiffModifiedColor = Settings::Instance().GetConfiguredColor(Settings::Color::GitDiffModified);
+  QRgb gitDiffRemovedColor = Settings::Instance().GetConfiguredColor(Settings::Color::GitDiffRemoved);
+  
   bool highlightCurrentLine = Settings::Instance().GetHighlightCurrentLine();
   bool highlightTrailingSpaces = Settings::Instance().GetHighlightTrailingSpaces();
   bool darkenNonContextRegions = Settings::Instance().GetDarkenNonContextRegions();
@@ -2560,21 +2575,21 @@ void DocumentWidget::paintEvent(QPaintEvent* event) {
     float blue = 0;
     int bgColorCount = 0;
     if (lineAttributes & static_cast<int>(LineAttribute::Bookmark)) {
-      red += bookmarkColor.red();
-      green += bookmarkColor.green();
-      blue += bookmarkColor.blue();
+      red += qRed(bookmarkColor);
+      green += qGreen(bookmarkColor);
+      blue += qBlue(bookmarkColor);
       ++ bgColorCount;
     }
     if (highlightCurrentLine && line == cursorLine) {
-      red += highlightLineColor.red();
-      green += highlightLineColor.green();
-      blue += highlightLineColor.blue();
+      red += qRed(highlightLineColor);
+      green += qGreen(highlightLineColor);
+      blue += qBlue(highlightLineColor);
       ++ bgColorCount;
     }
     if (darkenNonContextRegions && isCFile && !withinAnyContext && lineIsEmptyOrOnlyWhitespace) {
-      red += outsideOfContextLineColor.red();
-      green += outsideOfContextLineColor.green();
-      blue += outsideOfContextLineColor.blue();
+      red += qRed(outsideOfContextLineColor);
+      green += qGreen(outsideOfContextLineColor);
+      blue += qBlue(outsideOfContextLineColor);
       ++ bgColorCount;
     }
     
@@ -2582,7 +2597,7 @@ void DocumentWidget::paintEvent(QPaintEvent* event) {
     if (bgColorCount > 0) {
       lineBackgroundColor = qRgb(red / bgColorCount, green / bgColorCount, blue / bgColorCount);
     } else {
-      lineBackgroundColor = Qt::white;
+      lineBackgroundColor = editorBackgroundColor;
     }
     
     QColor styleBackgroundColor;
@@ -2663,7 +2678,7 @@ void DocumentWidget::paintEvent(QPaintEvent* event) {
         if (errorRangeEnd > characterOffset || warningRangeEnd > characterOffset) {
           lastProblemInLine = lastProblem;
           
-          QColor color = (errorRangeEnd > characterOffset) ? qRgb(255, 0, 0) : qRgb(0, 255, 0);
+          QColor color = (errorRangeEnd > characterOffset) ? errorUnderlineColor : warningUnderlineColor;
           
           QPen oldPen = painter.pen();
           painter.setPen(color);
@@ -2796,10 +2811,10 @@ void DocumentWidget::paintEvent(QPaintEvent* event) {
            diffLines[currentDiffLine].line + diffLines[currentDiffLine].numLines > line) {
       const LineDiff& diff = diffLines[currentDiffLine];
       if (diff.type == LineDiff::Type::Added) {
-        sidebarColor = qRgb(0, 255, 0);
+        sidebarColor = gitDiffAddedColor;
         break;
       } else if (diff.type == LineDiff::Type::Modified) {
-        sidebarColor = qRgb(255, 255, 0);
+        sidebarColor = gitDiffModifiedColor;
         break;
       } else if (diff.type == LineDiff::Type::Removed) {
         drawRedDot = true;
@@ -2811,7 +2826,7 @@ void DocumentWidget::paintEvent(QPaintEvent* event) {
     painter.fillRect(0, currentY, sidebarWidth, lineHeight, sidebarColor);
     if (drawRedDot) {
       painter.setPen(Qt::NoPen);
-      painter.setBrush(QBrush(qRgb(255, 0, 0)));
+      painter.setBrush(QBrush(gitDiffRemovedColor));
       int diameter = std::min(sidebarWidth, lineHeight);
       painter.drawEllipse(0 + (sidebarWidth - diameter) / 2, currentY - diameter / 2, diameter, diameter);
     }
@@ -2819,9 +2834,8 @@ void DocumentWidget::paintEvent(QPaintEvent* event) {
         currentDiffLine < diffLines.size() &&
         diffLines[currentDiffLine].line >= layoutLines.size() &&
         diffLines[currentDiffLine].type == LineDiff::Type::Removed) {
-      qDebug() << "PAINTING AT LAST LINE";
       painter.setPen(Qt::NoPen);
-      painter.setBrush(QBrush(qRgb(255, 0, 0)));
+      painter.setBrush(QBrush(gitDiffRemovedColor));
       int diameter = std::min(sidebarWidth, lineHeight);
       painter.drawEllipse(0 + (sidebarWidth - diameter) / 2, currentY + lineHeight - diameter / 2, diameter, diameter);
     }

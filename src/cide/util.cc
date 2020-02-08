@@ -72,6 +72,44 @@ QString FindDefaultClangBinaryPath() {
 }
 
 
+QRgb ParseHexColor(const QString& text) {
+  if (text.size() != 6) {
+    qDebug() << "Warning: Failed to parse hex color string (size != 6):" << text;
+    return qRgb(0, 0, 0);
+  }
+  
+  bool ok;
+  int r = text.mid(0, 2).toInt(&ok, 16);
+  if (!ok) {
+    qDebug() << "Warning: Failed to parse hex color string (cannot parse red part):" << text;
+    return qRgb(0, 0, 0);
+  }
+  
+  int g = text.mid(2, 2).toInt(&ok, 16);
+  if (!ok) {
+    qDebug() << "Warning: Failed to parse hex color string (cannot parse green part):" << text;
+    return qRgb(0, 0, 0);
+  }
+  
+  int b = text.mid(4, 2).toInt(&ok, 16);
+  if (!ok) {
+    qDebug() << "Warning: Failed to parse hex color string (cannot parse blue part):" << text;
+    return qRgb(0, 0, 0);
+  }
+  
+  return qRgb(r, g, b);
+}
+
+QString ToHexColorString(const QRgb& color) {
+  QString::number(qRed(color), 16);
+  
+  return QStringLiteral("%1%2%3")
+      .arg(static_cast<uint>(qRed(color)), 2, 16, QLatin1Char('0'))
+      .arg(static_cast<uint>(qGreen(color)), 2, 16, QLatin1Char('0'))
+      .arg(static_cast<uint>(qBlue(color)), 2, 16, QLatin1Char('0'));
+}
+
+
 ActionWithConfigurableShortcut::ActionWithConfigurableShortcut(const QString& name, const char* configurationKeyName, QObject* parent)
     : QAction(name, parent),
       configurationKeyName(configurationKeyName) {

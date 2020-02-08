@@ -6,6 +6,7 @@
 
 #include <QBoxLayout>
 #include <QCheckBox>
+#include <QColorDialog>
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QDebug>
@@ -110,6 +111,27 @@ void Settings::DeregisterConfigurableAction(ActionWithConfigurableShortcut* acti
   }
 }
 
+void Settings::AddConfigurableColor(Color id, const QString& name, const char* configurationKeyName, const QRgb& defaultValue) {
+  QString fullKeyName = QStringLiteral("color/") + configurationKeyName;
+  
+  QRgb color;
+  QSettings settings;
+  if (settings.contains(fullKeyName)) {
+    color = ParseHexColor(settings.value(fullKeyName).toString());
+  } else {
+    color = defaultValue;
+  }
+  
+  configuredColors[static_cast<int>(id)] = ConfigurableColor(name, fullKeyName, color);
+}
+
+void Settings::SetConfigurableColor(Color id, QRgb value) {
+  ConfigurableColor& color = configuredColors[static_cast<int>(id)];
+  
+  color.value = value;
+  QSettings().setValue(color.keyName, ToHexColorString(value));
+}
+
 void Settings::ReloadFonts() {
   int regularFontID = QFontDatabase::addApplicationFont(QDir(qApp->applicationDirPath()).filePath("resources/Inconsolata/Inconsolata-Regular.ttf"));
   int boldFontID = QFontDatabase::addApplicationFont(QDir(qApp->applicationDirPath()).filePath("resources/Inconsolata/Inconsolata-Bold.ttf"));
@@ -180,6 +202,23 @@ Settings::Settings() {
   AddConfigurableShortcut(tr("Fix all visible trivial issues"), fixAllVisibleTrivialIssuesShortcut, QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_A));
   AddConfigurableShortcut(tr("Find next"), findNextShortcut, QKeySequence(Qt::Key_F3));
   AddConfigurableShortcut(tr("Find previous"), findPreviousShortcut, QKeySequence(Qt::SHIFT + Qt::Key_F3));
+  
+  // Set up the list of colors which can be configured
+  configuredColors.resize(static_cast<int>(Color::NumColors));
+  AddConfigurableColor(Color::EditorBackground, tr("Editor background"), "editor_background", qRgb(255, 255, 255));
+  AddConfigurableColor(Color::TrailingSpaceHighlight, tr("Trailing space highlight"), "trailing_space_highlight", qRgb(255, 0, 0));
+  AddConfigurableColor(Color::OutsizeOfContextLine, tr("Outside-of-context line background"), "outsize_of_context_line", qRgb(240, 240, 240));
+  AddConfigurableColor(Color::CurrentLine, tr("Current line background"), "current_line_background", qRgb(248, 247, 246));
+  AddConfigurableColor(Color::EditorSelection, tr("Selection background"), "editor_selection", qRgb(148, 202, 239));
+  AddConfigurableColor(Color::BookmarkLine, tr("Bookmarked line background"), "bookmark_line", qRgb(229, 229, 255));
+  AddConfigurableColor(Color::ErrorLine, tr("Background color for line with error"), "error_line", qRgb(255, 229, 229));
+  AddConfigurableColor(Color::ErrorUnderline, tr("Underlining color errors"), "error_underline", qRgb(255, 0, 0));
+  AddConfigurableColor(Color::WarningLine, tr("Background color for line with warning"), "warning_line", qRgb(229, 255, 229));
+  AddConfigurableColor(Color::WarningUnderline, tr("Underlining color warnings"), "warning_underline", qRgb(0, 255, 0));
+  AddConfigurableColor(Color::ColumnMarker, tr("Column marker line color"), "column_marker", qRgb(230, 230, 230));
+  AddConfigurableColor(Color::GitDiffAdded, tr("Git diff: Added lines marker"), "git_diff_add", qRgb(0, 255, 0));
+  AddConfigurableColor(Color::GitDiffModified, tr("Git diff: Modified lines marker"), "git_diff_modified", qRgb(255, 255, 0));
+  AddConfigurableColor(Color::GitDiffRemoved, tr("Git diff: Removed lines marker"), "git_diff_removed", qRgb(255, 0, 0));
 }
 
 void Settings::ShowSettingsWindow(QWidget* parent) {
@@ -215,6 +254,10 @@ SettingsDialog::SettingsDialog(QWidget* parent)
   newItem->setData(Qt::UserRole, static_cast<int>(Categories::CodeHighlighting));
   categoryList->addItem(newItem);
   
+  newItem = new QListWidgetItem(tr("Colors"));
+  newItem->setData(Qt::UserRole, static_cast<int>(Categories::Colors));
+  categoryList->addItem(newItem);
+  
   newItem = new QListWidgetItem(tr("Debugging"));
   newItem->setData(Qt::UserRole, static_cast<int>(Categories::Debugging));
   categoryList->addItem(newItem);
@@ -236,6 +279,7 @@ SettingsDialog::SettingsDialog(QWidget* parent)
   categoriesLayout->addWidget(CreateAutoCompletionsCorrectionsCategory());
   categoriesLayout->addWidget(CreateCodeParsingCategory());
   categoriesLayout->addWidget(CreateCodeHighlightingCategory());
+  categoriesLayout->addWidget(CreateColorsCategory());
   categoriesLayout->addWidget(CreateDebuggingCategory());
   categoriesLayout->addWidget(CreateDocumentationFilesCategory());
   categoriesLayout->addWidget(CreateKeyboardShortcutsCategory());
@@ -584,6 +628,50 @@ void SettingsDialog::UpdateCommentMarkers() {
     markers.push_back(commentMarkerList->item(i)->text());
   }
   Settings::Instance().SetCommentMarkers(markers);
+}
+
+QWidget* SettingsDialog::CreateColorsCategory() {
+  colorsTable = new QTableWidget(Settings::Instance().GetNumConfigurableColors(), 2);
+  colorsTable->setHorizontalHeaderLabels(QStringList() << "Name" << "Color value");
+  colorsTable->setColumnWidth(0, std::max(400, colorsTable->columnWidth(0)));
+  colorsTable->verticalHeader()->hide();
+  
+  for (int row = 0; row < Settings::Instance().GetNumConfigurableColors(); ++ row) {
+    const Settings::ConfigurableColor& color = Settings::Instance().GetConfigurableColor(static_cast<Settings::Color>(row));
+    
+    QTableWidgetItem* newItem = new QTableWidgetItem(color.name);
+    newItem->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+    newItem->setData(Qt::UserRole, row);
+    colorsTable->setItem(row, 0, newItem);
+    
+    newItem = new QTableWidgetItem();
+    newItem->setFlags(Qt::ItemIsEnabled);
+    newItem->setBackgroundColor(color.value);
+    newItem->setData(Qt::UserRole, row);
+    colorsTable->setItem(row, 1, newItem);
+  }
+  
+  colorsTable->setSortingEnabled(true);
+  colorsTable->sortByColumn(0, Qt::AscendingOrder);
+  
+  QVBoxLayout* layout = new QVBoxLayout();
+  layout->addWidget(colorsTable);
+  
+  // --- Connections ---
+  connect(colorsTable, &QTableWidget::itemClicked, [&](QTableWidgetItem* item) {
+    Settings::Color colorId = static_cast<Settings::Color>(item->data(Qt::UserRole).toInt());
+    const Settings::ConfigurableColor& color = Settings::Instance().GetConfigurableColor(colorId);
+    
+    QColor result = QColorDialog::getColor(color.value, this);
+    if (result.isValid()) {
+      Settings::Instance().SetConfigurableColor(colorId, result.rgb());
+      colorsTable->item(item->row(), 1)->setBackgroundColor(result);
+    }
+  });
+  
+  QWidget* categoryWidget = new QWidget();
+  categoryWidget->setLayout(layout);
+  return categoryWidget;
 }
 
 QWidget* SettingsDialog::CreateDebuggingCategory() {

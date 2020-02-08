@@ -62,6 +62,13 @@ inline Qt::WindowFlags GetCustomTooltipWindowFlags() {
 }
 
 
+/// Parses the given text as an HTML-like color. For example, "ff0000" would be parsed as qRgb(255, 0, 0).
+QRgb ParseHexColor(const QString& text);
+
+/// Converts the given color to an HTML-like color string. For example, qRgb(255, 0, 0) would be converted to "ff0000".
+QString ToHexColorString(const QRgb& color);
+
+
 class ActionWithConfigurableShortcut : public QAction {
  Q_OBJECT
  public:

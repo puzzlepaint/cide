@@ -386,14 +386,6 @@ class DocumentWidget : public QWidget {
   
   // Settings. TODO: Make configurable.
   bool intelligentHomeAndEnd = true;
-  QColor highlightTrailingSpaceColor = qRgb(255, 0, 0);
-  QColor outsideOfContextLineColor = qRgb(240, 240, 240);
-  QColor highlightLineColor = qRgb(248, 247, 246);
-  QColor selectionColor = qRgb(148, 202, 239);
-  QColor bookmarkColor = qRgb(229, 229, 255);
-  QColor errorColor = qRgb(255, 229, 229);
-  QColor warningColor = qRgb(229, 255, 229);
-  QColor columnMarkerColor = qRgb(230, 230, 230);
   const int sidebarWidth = 5;
   
   bool movingCursor = false;

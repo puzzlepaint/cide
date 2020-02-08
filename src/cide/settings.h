@@ -103,6 +103,25 @@ class Settings : public QObject {
     TabAndReturn = 3  // bits: 11
   };
   
+  /// List of configurable colors
+  enum class Color {
+    EditorBackground = 0,
+    TrailingSpaceHighlight,
+    OutsizeOfContextLine,
+    CurrentLine,
+    EditorSelection,
+    BookmarkLine,
+    ErrorLine,
+    ErrorUnderline,
+    WarningLine,
+    WarningUnderline,
+    ColumnMarker,
+    GitDiffAdded,
+    GitDiffModified,
+    GitDiffRemoved,
+    NumColors
+  };
+  
   struct ConfigurableShortcut {
     inline ConfigurableShortcut(const QString& name, const QKeySequence& sequence)
         : name(name),
@@ -111,6 +130,19 @@ class Settings : public QObject {
     QString name;
     QKeySequence sequence;
     std::vector<ActionWithConfigurableShortcut*> registeredActions;
+  };
+  
+  struct ConfigurableColor {
+    ConfigurableColor() = default;
+    
+    inline ConfigurableColor(const QString& name, const QString& keyName, const QRgb& value)
+        : name(name),
+          keyName(keyName),
+          value(value) {}
+    
+    QString name;
+    QString keyName;
+    QRgb value;
   };
   
   
@@ -123,6 +155,13 @@ class Settings : public QObject {
   
   void RegisterConfigurableAction(ActionWithConfigurableShortcut* action, const char* configurationKeyName);
   void DeregisterConfigurableAction(ActionWithConfigurableShortcut* action, const char* configurationKeyName);
+  
+  void AddConfigurableColor(Color id, const QString& name, const char* configurationKeyName, const QRgb& defaultValue);
+  inline int GetNumConfigurableColors() const { return static_cast<int>(Color::NumColors); }
+  inline QRgb GetConfiguredColor(Color id) { return configuredColors[static_cast<int>(id)].value; }
+  inline const ConfigurableColor& GetConfigurableColor(Color id) { return configuredColors[static_cast<int>(id)]; }
+  void SetConfigurableColor(Color id, QRgb value);
+  
   
   /// (Re-)loads the fonts. This must be done after changing the font size.
   void ReloadFonts();
@@ -325,6 +364,9 @@ class Settings : public QObject {
   
   /// Maps: configuration key name --> shortcut data.
   std::unordered_map<QString, std::shared_ptr<ConfigurableShortcut>> shortcuts;
+  
+  /// Indexed by static_cast<int>(color_id) with color_id of type Color.
+  std::vector<ConfigurableColor> configuredColors;
 };
 
 
@@ -339,6 +381,7 @@ class SettingsDialog : public QDialog {
     AutoCompletionsCorrections,
     CodeParsing,
     CodeHighlighting,
+    Colors,
     Debugging,
     DocumentationFiles,
     KeyboardShortcuts
@@ -397,6 +440,11 @@ class SettingsDialog : public QDialog {
   
   QListWidget* commentMarkerList;
   QPushButton* removeCommentMarkerButton;
+  
+  // "Colors" category
+  QWidget* CreateColorsCategory();
+  
+  QTableWidget* colorsTable;
   
   // "Debugging" category
   QWidget* CreateDebuggingCategory();

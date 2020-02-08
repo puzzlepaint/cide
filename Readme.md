@@ -275,7 +275,7 @@ Note that the shortcuts are configurable in the program settings.
   containing the includes) is not modified.
 * The libclang mechanism which caches preambles and the crash backup mechanism
   of CIDE may write a lot of data to the temporary directory (usually /tmp on
-  Linux and C:\Users\<username>\AppData\Local\Temp on Windows). You might want
+  Linux and C:\Users&#92;[username]\AppData\Local\Temp on Windows). You might want
   to mount this directory in RAM.
 
 

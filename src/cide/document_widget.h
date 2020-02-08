@@ -217,6 +217,8 @@ class DocumentWidget : public QWidget {
   /// widets to move along with the document widget.
   void Moved();
   
+  void FontChanged();
+  
  signals:
   void CursorMoved(int line, int col);
   

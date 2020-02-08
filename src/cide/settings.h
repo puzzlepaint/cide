@@ -124,6 +124,13 @@ class Settings : public QObject {
   void RegisterConfigurableAction(ActionWithConfigurableShortcut* action, const char* configurationKeyName);
   void DeregisterConfigurableAction(ActionWithConfigurableShortcut* action, const char* configurationKeyName);
   
+  /// (Re-)loads the fonts. This must be done after changing the font size.
+  void ReloadFonts();
+  
+  inline float GetFontSize() const {
+    return QSettings().value("font_size", 11.f).toFloat();
+  }
+  
   inline const QFont& GetDefaultFont() const {
     return defaultFont;
   }
@@ -232,6 +239,10 @@ class Settings : public QObject {
   static void ShowSettingsWindow(QWidget* parent = nullptr);
   
  public slots:
+  inline void SetFontSize(float size) const {
+    QSettings().setValue("font_size", size);
+  }
+  
   inline void SetDefaultCompiler(const QString& path) {
     QSettings().setValue("default_compiler", path);
   }
@@ -294,6 +305,9 @@ class Settings : public QObject {
     QSettings().setValue("code_completion_confirmation_keys", static_cast<int>(keys));
   }
   
+ signals:
+  void FontChanged();
+  
  private:
   Settings();
   
@@ -329,6 +343,7 @@ class SettingsDialog : public QDialog {
   // "General" category
   QWidget* CreateGeneralCategory();
   
+  QLineEdit* fontSizeEdit;
   QComboBox* headerSourceOrderingCombo;
   QComboBox* codeCompletionConfirmationCombo;
   QCheckBox* showColumnMarkerCheck;

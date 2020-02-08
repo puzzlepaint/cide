@@ -110,12 +110,7 @@ void Settings::DeregisterConfigurableAction(ActionWithConfigurableShortcut* acti
   }
 }
 
-Settings::Settings() {
-  // Initial the symbol array
-  InitializeSymbolArray();
-  
-  // Load fonts
-  // TODO: Deploy them into the build directory
+void Settings::ReloadFonts() {
   int regularFontID = QFontDatabase::addApplicationFont(QDir(qApp->applicationDirPath()).filePath("resources/Inconsolata/Inconsolata-Regular.ttf"));
   int boldFontID = QFontDatabase::addApplicationFont(QDir(qApp->applicationDirPath()).filePath("resources/Inconsolata/Inconsolata-Bold.ttf"));
   
@@ -123,12 +118,27 @@ Settings::Settings() {
     qDebug() << "Failed to load at least one of the Inconsolata font files.";
     
     // Use default font.
-    defaultFont = QFont("Monospace", 9);
-    boldFont = QFont("Monospace", 9, QFont::Bold);
+    defaultFont = QFont("Monospace");
+    boldFont = QFont("Monospace");
   } else {
-    defaultFont = QFont(QFontDatabase::applicationFontFamilies(regularFontID)[0], 11);
-    boldFont = QFont(QFontDatabase::applicationFontFamilies(boldFontID)[0], 11, QFont::Bold);
+    defaultFont = QFont(QFontDatabase::applicationFontFamilies(regularFontID)[0]);
+    boldFont = QFont(QFontDatabase::applicationFontFamilies(boldFontID)[0]);
   }
+  
+  defaultFont.setPointSizeF(Settings::GetFontSize());
+  boldFont.setPointSizeF(Settings::GetFontSize());
+  
+  boldFont.setBold(true);
+  
+  emit FontChanged();
+}
+
+Settings::Settings() {
+  // Initial the symbol array
+  InitializeSymbolArray();
+  
+  // Load fonts
+  ReloadFonts();
   
   // Set up the list of actions for which custom shortcuts can be configured
   AddConfigurableShortcut(tr("Build current target"), buildCurrentTargetShortcut, QKeySequence(Qt::Key_F7));
@@ -252,6 +262,12 @@ SettingsDialog::SettingsDialog(QWidget* parent)
 }
 
 QWidget* SettingsDialog::CreateGeneralCategory() {
+  QLabel* fontSizeLabel = new QLabel(tr("Font size (floating-point values allowed): "));
+  fontSizeEdit = new QLineEdit(QString::number(Settings::Instance().GetFontSize()));
+  QHBoxLayout* fontSizeLayout = new QHBoxLayout();
+  fontSizeLayout->addWidget(fontSizeLabel);
+  fontSizeLayout->addWidget(fontSizeEdit);
+  
   QLabel* headerSourceOrderingLabel = new QLabel(tr("Header/source tab ordering: "));
   headerSourceOrderingCombo = new QComboBox();
   headerSourceOrderingCombo->addItem(tr("Source left, header right"), QVariant(true));
@@ -293,12 +309,17 @@ QWidget* SettingsDialog::CreateGeneralCategory() {
   columnMarkerLayout->addWidget(columnMarkerEdit);
   
   QVBoxLayout* layout = new QVBoxLayout();
+  layout->addLayout(fontSizeLayout);
   layout->addLayout(headerSourceOrderingLayout);
   layout->addLayout(codeCompletionConfirmationLayout);
   layout->addLayout(columnMarkerLayout);
   layout->addStretch(1);
   
   // --- Connections ---
+  connect(fontSizeEdit, &QLineEdit::textChanged, [&](const QString& text) {
+    Settings::Instance().SetFontSize(text.toFloat());
+    Settings::Instance().ReloadFonts();
+  });
   connect(headerSourceOrderingCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), [&](int index) {
     Settings::Instance().SetSourceLeftOfHeaderOrdering(index == 0);
   });

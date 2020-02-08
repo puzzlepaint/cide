@@ -45,11 +45,8 @@ DocumentWidget::DocumentWidget(const std::shared_ptr<Document>& document, Docume
   setCursor(Qt::IBeamCursor);
   setAutoFillBackground(false);
   
-  if (!fontMetrics) {
-    fontMetrics.reset(new QFontMetrics(Settings::Instance().GetDefaultFont()));
-  }
-  lineHeight = fontMetrics->ascent() + fontMetrics->descent();
-  charWidth = fontMetrics->/*horizontalAdvance*/ width(' ');
+  connect(&Settings::Instance(), &Settings::FontChanged, this, &DocumentWidget::FontChanged);
+  FontChanged();
   
   QAction* undoAction = new ActionWithConfigurableShortcut(tr("Undo"), undoShortcut, this);
   connect(undoAction, &QAction::triggered, this, &DocumentWidget::Undo);
@@ -1365,6 +1362,12 @@ void DocumentWidget::Moved() {
   if (argumentHintWidget) {
     argumentHintWidget->Relayout();
   }
+}
+
+void DocumentWidget::FontChanged() {
+  fontMetrics.reset(new QFontMetrics(Settings::Instance().GetDefaultFont()));
+  lineHeight = fontMetrics->ascent() + fontMetrics->descent();
+  charWidth = fontMetrics->/*horizontalAdvance*/ width(' ');
 }
 
 bool DocumentWidget::CheckRelayout() {

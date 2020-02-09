@@ -35,6 +35,7 @@ class ProjectTreeView : public QObject {
   
   void Reconfigure();
   void ProjectSettings();
+  void CloseProject();
   
   bool SelectCurrent();
   
@@ -91,6 +92,7 @@ class ProjectTreeView : public QObject {
   QMenu* contextMenu;
   QAction* reconfigureAction;
   QAction* projectSettingsAction;
+  QAction* closeProjectAction;
   QAction* createClassAction;
   QAction* createFileAction;
   QAction* createFolderAction;

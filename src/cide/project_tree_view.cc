@@ -33,6 +33,7 @@ void ProjectTreeView::Initialize(MainWindow* mainWindow, QAction* showProjectFil
   contextMenu = new QMenu();
   reconfigureAction = contextMenu->addAction(tr("Reconfigure"), this, &ProjectTreeView::Reconfigure);
   projectSettingsAction = contextMenu->addAction(tr("Project settings..."), this, &ProjectTreeView::ProjectSettings);
+  closeProjectAction = contextMenu->addAction(tr("Close project"), this, &ProjectTreeView::CloseProject);
   contextMenu->addSeparator();
   contextMenu->addAction(tr("Select current document"), this, &ProjectTreeView::SelectCurrent);
   contextMenu->addSeparator();
@@ -94,6 +95,19 @@ void ProjectTreeView::ProjectSettings() {
     if (project) {
       ProjectSettingsDialog dialog(project, mainWindow);
       dialog.exec();
+    }
+  }
+}
+
+void ProjectTreeView::CloseProject() {
+  if (rightClickedItem) {
+    std::shared_ptr<Project> project = GetProjectForItem(rightClickedItem);
+    if (project) {
+      if (QMessageBox::question(mainWindow, tr("Close project"), tr("Are you sure that you want to close project %1?").arg(project->GetName()), QMessageBox::Yes | QMessageBox::No) == QMessageBox::No) {
+        return;
+      }
+      
+      mainWindow->CloseProject();
     }
   }
 }
@@ -389,6 +403,7 @@ void ProjectTreeView::ItemRightClicked(QTreeWidgetItem* item, QPoint pos) {
   
   reconfigureAction->setVisible(isProject);
   projectSettingsAction->setVisible(isProject);
+  closeProjectAction->setVisible(isProject);
   createClassAction->setVisible(isDir);
   createFileAction->setVisible(isDir);
   createFolderAction->setVisible(isDir);
@@ -403,6 +418,7 @@ void ProjectTreeView::RightClicked(QPoint pos) {
   
   reconfigureAction->setVisible(false);
   projectSettingsAction->setVisible(false);
+  closeProjectAction->setVisible(false);
   createClassAction->setVisible(false);
   createFileAction->setVisible(false);
   createFolderAction->setVisible(false);

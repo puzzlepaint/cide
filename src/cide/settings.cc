@@ -274,6 +274,40 @@ Settings::Settings() {
   AddConfigurableTextStyle(TextStyle::RightBracketHighlight, tr("Highlight for bracket right of cursor and its matching bracket"), "right_bracket_highlight", false, qRgb(0, 0, 0), false, true, qRgb(255, 144, 0));
   AddConfigurableTextStyle(TextStyle::ErrorInlineDisplay, tr("Inline error display"), "inline_error_display", true, qRgb(150, 127, 127), true, true, qRgb(255, 229, 229));
   AddConfigurableTextStyle(TextStyle::WarningInlineDisplay, tr("Inline warning display"), "inline_warning_display", true, qRgb(127, 150, 127), true, true, qRgb(229, 255, 229));
+  AddConfigurableTextStyle(TextStyle::CommentMarker, tr("Marker word in a comment (such as \"TODO\"; can be configured)"), "comment_marker", true, qRgb(202, 146, 25), true, true, qRgb(69, 30, 26));
+  AddConfigurableTextStyle(TextStyle::LanguageKeyword, tr("C/C++ keyword"), "language_keyword", true, qRgb(0, 0, 0), true, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::Comment, tr("Comment"), "comment", true, qRgb(80, 80, 80), false, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::ExtraPunctuation, tr("Punctuation that is usually redundant with the indentation (semicolon and curly braces)"), "extra_punctuation", true, qRgb(127, 127, 127), false, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::PreprocessorDirective, tr("Preprocessor directive"), "preprocessor_directive", true, qRgb(5, 113, 44), false, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::MacroDefinition, tr("Macro definition"), "macro_definition", true, qRgb(164, 18, 57), true, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::MacroInvocation, tr("Macro invocation"), "macro_invocation", false, qRgb(0, 0, 0), false, true, qRgb(235, 235, 235));
+  AddConfigurableTextStyle(TextStyle::TemplateParameterDefinition, tr("Template parameter definition"), "template_parameter_definition", true, qRgb(175, 126, 2), true, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::TemplateParameterUse, tr("Template parameter use"), "template_parameter_use", true, qRgb(175, 126, 2), false, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::VariableDefinition, tr("Variable definition"), "variable_definition", true, qRgb(0, 127, 0), true, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::VariableUse, tr("Variable use"), "variable_use", true, qRgb(0, 127, 0), false, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::MemberVariableUse, tr("Member variable (attribute) use"), "member_variable_use", true, qRgb(179, 134, 12), false, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::TypedefDefinition, tr("Typedef definition"), "typedef_definition", true, qRgb(200, 0, 180), true, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::TypedefUse, tr("Typedef use"), "typedef_use", true, qRgb(200, 0, 180), false, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::EnumConstantDefinition, tr("Enum constant definition"), "enum_constant_definition", true, qRgb(0, 127, 0), true, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::EnumConstantUse, tr("Enum constant use"), "enum_constant_use", true, qRgb(0, 127, 0), false, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::ConstructorOrDestructorDefinition, tr("Constructor or destructor definition"), "constructor_or_destructor_definition", true, qRgb(175, 126, 2), true, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::ConstructorOrDestructorUse, tr("Constructor or destructor use"), "constructor_or_destructor_use", true, qRgb(175, 126, 2), false, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::FunctionDefinition, tr("Function definition"), "function_definition", true, qRgb(0, 0, 127), true, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::FunctionUse, tr("Function use"), "function_use", true, qRgb(0, 0, 127), false, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::UnionDefinition, tr("Union definition"), "union_definition", true, qRgb(140, 100, 2), true, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::EnumDefinition, tr("Enum definition"), "enum_definition", true, qRgb(140, 100, 2), true, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::ClassOrStructDefinition, tr("Class / struct definition"), "class_or_struct_definition", true, qRgb(220, 80, 2), true, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::ClassOrStructUse, tr("Class / struct use"), "class_or_struct_use", true, qRgb(220, 80, 2), false, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::LabelStatement, tr("Label statement (e.g., \"label:\")"), "label_statement", true, qRgb(200, 0, 42), true, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::LabelReference, tr("Label use (e.g., \"goto label\")"), "label_use", true, qRgb(200, 0, 42), false, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::IntegerLiteral, tr("Integer literal"), "integer_literal", true, qRgb(185, 143, 35), false, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::FloatingLiteral, tr("Floating-point literal"), "floating_literal", true, qRgb(185, 85, 35), false, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::ImaginaryLiteral, tr("Imaginary literal"), "imaginary_literal", true, qRgb(185, 85, 35), false, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::StringLiteral, tr("String literal"), "string_literal", true, qRgb(192, 8, 8), false, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::CharacterLiteral, tr("Character literal"), "character_literal", true, qRgb(192, 8, 8), false, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::IncludePath, tr("Include path"), "include_path", true, qRgb(255, 85, 0), false, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::NamespaceDefinition, tr("Namespace definition"), "namespace_definition", true, qRgb(127, 127, 127), true, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::NamespaceUse, tr("Namespace use"), "namespace_use", true, qRgb(127, 127, 127), false, false, qRgb(255, 255, 255));
   
   
   // AddConfigurableTextStyle(TextStyle::TODO, "TODO", "TODO", TODO, TODO, TODO, TODO, TODO)

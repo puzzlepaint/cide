@@ -163,13 +163,19 @@ void FindCommentMarkerRanges(CXToken* tokens, unsigned numTokens, HighlightingAS
 }
 
 void ApplyCommentMarkerRanges(Document* document, const std::vector<DocumentRange>& ranges) {
+  const auto& commentMarkerStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::CommentMarker);
   for (const DocumentRange& range : ranges) {
-    document->AddHighlightRange(range, true, qRgb(202, 146, 25), true, true, true, qRgb(69, 30, 26));
+    document->AddHighlightRange(range, true, commentMarkerStyle);
   }
 }
 
 void AddTokenHighlighting(Document* document, CXToken* tokens, unsigned numTokens, HighlightingASTVisitorData* visitorData) {
   constexpr bool kDebug = false;
+  
+  const auto& languageKeywordStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::LanguageKeyword);
+  const auto& commentStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::Comment);
+  const auto& extraPunctuationStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ExtraPunctuation);
+  const auto& preprocessorDirectiveStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::PreprocessorDirective);
   
   // Note: "#pragma once" is not reported via cursors at all. So we highlight it here via tokens.
   // The token sequence we need to watch out for is:
@@ -186,14 +192,14 @@ void AddTokenHighlighting(Document* document, CXToken* tokens, unsigned numToken
     
     if (kind == CXToken_Keyword) {
       DocumentRange tokenRange = CXSourceRangeToDocumentRange(clang_getTokenExtent(visitorData->TU, tokens[t]), *visitorData->lineOffsets);
-      document->AddHighlightRange(tokenRange, false, qRgb(0, 0, 0), true);
+      document->AddHighlightRange(tokenRange, false, languageKeywordStyle);
       
       if (kDebug) {
         qDebug() << "Keyword token: " << ClangString(clang_getTokenSpelling(visitorData->TU, tokens[t])).ToQString();
       }
     } else if (kind == CXToken_Comment) {
       DocumentRange tokenRange = CXSourceRangeToDocumentRange(clang_getTokenExtent(visitorData->TU, tokens[t]), *visitorData->lineOffsets);
-      document->AddHighlightRange(tokenRange, true, qRgb(80, 80, 80), false);
+      document->AddHighlightRange(tokenRange, true, commentStyle);
       
       visitorData->commentRanges.push_back(tokenRange);
       
@@ -206,7 +212,7 @@ void AddTokenHighlighting(Document* document, CXToken* tokens, unsigned numToken
       
       char token = clang_getCString(tokenSpelling)[0];
       if (token == ';' || token == '{' || token == '}') {
-        document->AddHighlightRange(tokenRange, false, qRgb(127, 127, 127), false);
+        document->AddHighlightRange(tokenRange, false, extraPunctuationStyle);
       } else if (token == '#') {
         visitorData->pragmaOnceState = 1;
         pragmaOnceStateUpdated = true;
@@ -231,7 +237,7 @@ void AddTokenHighlighting(Document* document, CXToken* tokens, unsigned numToken
           cSpelling[8] == 0) {
         // TODO: "override" only acts as a keyword in the correct context. So we should also only highlight it in this case, instead of highlighting it always.
         DocumentRange tokenRange = CXSourceRangeToDocumentRange(clang_getTokenExtent(visitorData->TU, tokens[t]), *visitorData->lineOffsets);
-        document->AddHighlightRange(tokenRange, false, qRgb(0, 0, 0), true);
+        document->AddHighlightRange(tokenRange, false, languageKeywordStyle);
       } else if (visitorData->pragmaOnceState == 1 &&
                  cSpelling[0] == 'p' &&
                  cSpelling[1] == 'r' &&
@@ -258,7 +264,7 @@ void AddTokenHighlighting(Document* document, CXToken* tokens, unsigned numToken
           CXTokenKind kind = clang_getTokenKind(tokens[currentToken]);
           if (kind != CXToken_Comment) {
             DocumentRange tokenRange = CXSourceRangeToDocumentRange(clang_getTokenExtent(visitorData->TU, tokens[currentToken]), *visitorData->lineOffsets);
-            document->AddHighlightRange(tokenRange, false, qRgb(5, 113, 44), false);
+            document->AddHighlightRange(tokenRange, false, preprocessorDirectiveStyle);
             
             -- tokensToHighlight;
           }
@@ -286,6 +292,39 @@ CXChildVisitResult VisitClangAST_AddHighlightingAndContexts(CXCursor cursor, CXC
   HighlightingASTVisitorData* data = reinterpret_cast<HighlightingASTVisitorData*>(client_data);
   Document* document = data->document;
   
+  const auto& macroDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::MacroDefinition);
+  const auto& macroInvocationStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::MacroInvocation);
+  const auto& templateParameterDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::TemplateParameterDefinition);
+  const auto& templateParameterUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::TemplateParameterUse);
+  const auto& variableDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::VariableDefinition);
+  const auto& variableUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::VariableUse);
+  const auto& memberVariableUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::MemberVariableUse);
+  const auto& typedefDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::TypedefDefinition);
+  const auto& typedefUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::TypedefUse);
+  const auto& enumConstantDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::EnumConstantDefinition);
+  const auto& enumConstantUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::EnumConstantUse);
+  const auto& constructorOrDestructorDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ConstructorOrDestructorDefinition);
+  const auto& constructorOrDestructorUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ConstructorOrDestructorUse);
+  const auto& functionDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::FunctionDefinition);
+  const auto& functionUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::FunctionUse);
+  const auto& unionDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::UnionDefinition);
+  // TODO: Union use?
+  const auto& enumDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::EnumDefinition);
+  // TODO: Enum use?
+  const auto& classOrStructDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ClassOrStructDefinition);
+  const auto& classOrStructUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ClassOrStructUse);
+  const auto& labelStatementStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::LabelStatement);
+  const auto& labelReferenceStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::LabelReference);
+  const auto& integerLiteralStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::IntegerLiteral);
+  const auto& floatingLiteralStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::FloatingLiteral);
+  const auto& imaginaryLiteralStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ImaginaryLiteral);
+  const auto& stringLiteralStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::StringLiteral);
+  const auto& characterLiteralStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::CharacterLiteral);
+  const auto& preprocessorDirectiveStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::PreprocessorDirective);
+  const auto& includePathStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::IncludePath);
+  const auto& namespaceDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::NamespaceDefinition);
+  const auto& namespaceUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::NamespaceUse);
+  
   // Skip over cursors which are in included files
   CXSourceRange clangExtent = clang_getCursorExtent(cursor);
   CXSourceLocation extentStart = clang_getRangeStart(clangExtent);
@@ -310,7 +349,7 @@ CXChildVisitResult VisitClangAST_AddHighlightingAndContexts(CXCursor cursor, CXC
     
     data->macroExpansionRanges.push_back(std::make_pair(startOffset, endOffset));
     
-    document->AddHighlightRange(CXSourceRangeToDocumentRange(clangExtent, *data->lineOffsets), false, qRgb(0, 0, 0), false, false, true, qRgb(235, 235, 235));
+    document->AddHighlightRange(CXSourceRangeToDocumentRange(clangExtent, *data->lineOffsets), false, macroInvocationStyle);
     return CXChildVisit_Continue;
   }
   
@@ -389,9 +428,10 @@ CXChildVisitResult VisitClangAST_AddHighlightingAndContexts(CXCursor cursor, CXC
     DocumentRange spellingRange = CXSourceRangeToDocumentRange(clang_Cursor_getSpellingNameRange(cursor, 0, 0), *data->lineOffsets);
     DocumentRange extentRange = CXSourceRangeToDocumentRange(clangExtent, *data->lineOffsets);
     if (extentRange.end > spellingRange.start) {
-      QColor color = (kind == CXCursor_TemplateTypeParameter || kind == CXCursor_TemplateTemplateParameter) ? qRgb(175, 126, 2) : qRgb(0, 127, 0);
+      const Settings::ConfigurableTextStyle& style = (kind == CXCursor_TemplateTypeParameter || kind == CXCursor_TemplateTemplateParameter) ? templateParameterDefinitionStyle : variableDefinitionStyle;
       
       // Determine whether to apply per-variable coloring to this definition.
+      QColor overrideColor;
       if (data->perVariableColoring && kind != CXCursor_FieldDecl) {
         CXCursor parent = clang_getCursorSemanticParent(cursor);
         CXCursorKind parentKind = clang_getCursorKind(parent);
@@ -399,25 +439,30 @@ CXChildVisitResult VisitClangAST_AddHighlightingAndContexts(CXCursor cursor, CXC
           // Apply per-variable coloring.
           unsigned offset;
           clang_getFileLocation(clang_getCursorLocation(cursor), nullptr, nullptr, nullptr, &offset);
-          color = perVariableColorPool[data->variableCounterPerFunction % kPerVariableColorPoolSize];
-          data->perVariableColorMap[offset] = color;
+          overrideColor = perVariableColorPool[data->variableCounterPerFunction % kPerVariableColorPoolSize];
+          data->perVariableColorMap[offset] = overrideColor;
           ++ data->variableCounterPerFunction;
         }
       }
       
-      document->AddHighlightRange(spellingRange, false, color, true);
+      if (overrideColor.isValid()) {
+        // We usually override the text color, but do override the background color instead if the style does not affect the text color.
+        document->AddHighlightRange(spellingRange, false, overrideColor, style.bold, style.affectsText, style.affectsBackground, style.affectsText ? style.backgroundColor : overrideColor);
+      } else {
+        document->AddHighlightRange(spellingRange, false, style);
+      }
     }
   } else if (kind == CXCursor_TypedefDecl) {
     DocumentRange spellingRange = CXSourceRangeToDocumentRange(clang_Cursor_getSpellingNameRange(cursor, 0, 0), *data->lineOffsets);
-    document->AddHighlightRange(spellingRange, false, qRgb(200, 0, 180), true);
+    document->AddHighlightRange(spellingRange, false, typedefDefinitionStyle);
   } else if (kind == CXCursor_EnumConstantDecl) {
     DocumentRange spellingRange = CXSourceRangeToDocumentRange(clang_Cursor_getSpellingNameRange(cursor, 0, 0), *data->lineOffsets);
-    document->AddHighlightRange(spellingRange, false, qRgb(0, 127, 0), true);
+    document->AddHighlightRange(spellingRange, false, enumConstantDefinitionStyle);
   } else if (IsFunctionDeclLikeCursorKind(kind)) {
     bool isConstructorOrDestructor = kind == CXCursor_Constructor || kind == CXCursor_Destructor;
     
     DocumentRange spellingRange = CXSourceRangeToDocumentRange(clang_Cursor_getSpellingNameRange(cursor, 0, 0), *data->lineOffsets);
-    document->AddHighlightRange(spellingRange, false, isConstructorOrDestructor ? qRgb(175, 126, 2) : qRgb(0, 0, 127), true);
+    document->AddHighlightRange(spellingRange, false, isConstructorOrDestructor ? constructorOrDestructorDefinitionStyle : functionDefinitionStyle);
     
     data->variableCounterPerFunction = 0;
     data->perVariableColorMap.clear();
@@ -425,28 +470,49 @@ CXChildVisitResult VisitClangAST_AddHighlightingAndContexts(CXCursor cursor, CXC
     addContext = clang_isCursorDefinition(cursor);
   } else if (kind == CXCursor_UnionDecl || kind == CXCursor_EnumDecl) {
     DocumentRange spellingRange = CXSourceRangeToDocumentRange(clang_Cursor_getSpellingNameRange(cursor, 0, 0), *data->lineOffsets);
-    document->AddHighlightRange(spellingRange, false, qRgb(140, 100, 2), true);
+    document->AddHighlightRange(spellingRange, false, (kind == CXCursor_UnionDecl) ? unionDefinitionStyle : enumDefinitionStyle);
     addContext = clang_isCursorDefinition(cursor);
   } else if (kind == CXCursor_ClassTemplate ||
              kind == CXCursor_ClassDecl ||
              kind == CXCursor_StructDecl ||
              kind == CXCursor_TypeRef) {
     DocumentRange spellingRange = CXSourceRangeToDocumentRange(clang_Cursor_getSpellingNameRange(cursor, 0, 0), *data->lineOffsets);
-    document->AddHighlightRange(spellingRange, false, qRgb(220, 80, 2), kind != CXCursor_TypeRef);
+    const Settings::ConfigurableTextStyle* style;
+    if (kind == CXCursor_TypeRef) {
+      CXCursor referencedCursor = clang_getCursorReferenced(cursor);
+      CXCursorKind referencedKind = clang_getCursorKind(referencedCursor);
+      if (referencedKind == CXCursor_TypedefDecl) {
+        style = &typedefUseStyle;
+      } else {
+        style = &classOrStructUseStyle;
+      }
+    } else {
+      style = &classOrStructDefinitionStyle;
+    }
+    document->AddHighlightRange(spellingRange, false, *style);
   
     // Add a contexts for definitions (not for forward declarations).
     addContext = kind != CXCursor_TypeRef && clang_isCursorDefinition(cursor);
+  } else if (kind == CXCursor_CallExpr) {
+    CXCursor referencedCursor = clang_getCursorReferenced(cursor);
+    CXCursorKind referencedKind = clang_getCursorKind(referencedCursor);
+    if (referencedKind == CXCursor_Constructor) {
+      DocumentRange spellingRange = CXSourceRangeToDocumentRange(clang_Cursor_getSpellingNameRange(cursor, 0, 0), *data->lineOffsets);
+      document->AddHighlightRange(spellingRange, false, constructorOrDestructorUseStyle);
+    }
   } else if (kind == CXCursor_MemberRefExpr) {
     // Find out whether the member is a function or an attribute
     CXCursor memberCursor = clang_getCursorReferenced(cursor);
     CXCursorKind memberKind = clang_getCursorKind(memberCursor);
     DocumentRange spellingRange = CXSourceRangeToDocumentRange(clang_Cursor_getSpellingNameRange(cursor, 0, 0), *data->lineOffsets);
     if (memberKind == CXCursor_FieldDecl) {
-      document->AddHighlightRange(spellingRange, false, qRgb(179, 134, 12), false);
+      document->AddHighlightRange(spellingRange, false, memberVariableUseStyle);
     } else if (memberKind == CXCursor_CXXMethod ||
                memberKind == CXCursor_ConversionFunction ||
                memberKind == CXCursor_OverloadedDeclRef) {
-      document->AddHighlightRange(spellingRange, false, qRgb(0, 0, 127), false);
+      document->AddHighlightRange(spellingRange, false, functionUseStyle);
+    } else if (memberKind == CXCursor_Destructor){
+      document->AddHighlightRange(spellingRange, false, constructorOrDestructorUseStyle);
     } else if (memberKind == CXCursor_InvalidFile) {
       // This happens for calling functions on template types, for example
       // for "SomeFunction" here:
@@ -456,7 +522,7 @@ CXChildVisitResult VisitClangAST_AddHighlightingAndContexts(CXCursor cursor, CXC
       // }
       // In this case, the spelling range is only "T", while the extent
       // is "T.SomeFunction".
-      document->AddHighlightRange(CXSourceRangeToDocumentRange(clangExtent, *data->lineOffsets), false, qRgb(0, 0, 127), false);
+      document->AddHighlightRange(CXSourceRangeToDocumentRange(clangExtent, *data->lineOffsets), false, functionUseStyle);
     } else {
       qDebug() << "Warning: MemberRefExpr cursor to unhandled member type" << memberKind;
     }
@@ -478,34 +544,59 @@ CXChildVisitResult VisitClangAST_AddHighlightingAndContexts(CXCursor cursor, CXC
 //     range.end.col = range.start.col + 6;
 //     document->AddHighlightRange(range, false, qRgb(0, 0, 0), true);
   } else if (kind == CXCursor_DeclRefExpr) {
-    // NOTE: These are references to non-members.
-    QColor color = qRgb(0, 127, 0);
-    
+    // NOTE: These are references to non-members or enum constants.
     CXCursor referencedCursor = clang_getCursorReferenced(cursor);
-    if (IsFunctionDeclLikeCursorKind(clang_getCursorKind(referencedCursor))) {
-      color = qRgb(0, 0, 127);
-    } else if (data->perVariableColoring) {
-      if (!clang_Cursor_isNull(referencedCursor)) {
-        CXFile referencedFile;
-        unsigned offset;
-        clang_getFileLocation(clang_getCursorLocation(referencedCursor), &referencedFile, nullptr, nullptr, &offset);
-        if (clang_File_isEqual(referencedFile, data->file)) {
-          auto it = data->perVariableColorMap.find(offset);
-          if (it != data->perVariableColorMap.end()) {
-            color = it->second;
+    CXCursorKind referencedKind = clang_getCursorKind(referencedCursor);
+    
+    if (IsFunctionDeclLikeCursorKind(referencedKind)) {
+      DocumentRange spellingRange = CXSourceRangeToDocumentRange(clang_Cursor_getSpellingNameRange(cursor, 0, 0), *data->lineOffsets);
+      document->AddHighlightRange(spellingRange, false, functionUseStyle);
+    } else if (referencedKind == CXCursor_EnumConstantDecl) {
+      DocumentRange spellingRange = CXSourceRangeToDocumentRange(clang_Cursor_getSpellingNameRange(cursor, 0, 0), *data->lineOffsets);
+      document->AddHighlightRange(spellingRange, false, enumConstantUseStyle);
+    } else if (referencedKind == CXCursor_VarDecl || referencedKind == CXCursor_ParmDecl) {
+      QColor color = variableUseStyle.textColor;
+      
+      if (data->perVariableColoring) {
+        if (!clang_Cursor_isNull(referencedCursor)) {
+          CXFile referencedFile;
+          unsigned offset;
+          clang_getFileLocation(clang_getCursorLocation(referencedCursor), &referencedFile, nullptr, nullptr, &offset);
+          if (clang_File_isEqual(referencedFile, data->file)) {
+            auto it = data->perVariableColorMap.find(offset);
+            if (it != data->perVariableColorMap.end()) {
+              color = it->second;
+            }
           }
         }
       }
+      
+      // We usually override the text color, but do override the background color instead if the style does not affect the text color.
+      DocumentRange range = CXSourceRangeToDocumentRange(clangExtent, *data->lineOffsets);
+      document->AddHighlightRange(range, false, color, variableUseStyle.bold, variableUseStyle.affectsText, variableUseStyle.affectsBackground, variableUseStyle.affectsText ? variableUseStyle.backgroundColor : color);
+    } else {
+      qDebug() << "Clang highlighting: Encountered CXCursor_DeclRefExpr cursor which references an unhandled cursor kind: " << ClangString(clang_getCursorKindSpelling(referencedKind)).ToQString();
     }
-    
-    DocumentRange range = CXSourceRangeToDocumentRange(clangExtent, *data->lineOffsets);
-    document->AddHighlightRange(range, false, color, false);
   } else if (kind == CXCursor_TemplateRef) {
+    CXCursor referencedCursor = clang_getCursorReferenced(cursor);
+    CXCursorKind referencedKind = clang_getCursorKind(referencedCursor);
+    const Settings::ConfigurableTextStyle* style = &templateParameterUseStyle;
+    if (referencedKind == CXCursor_ClassTemplate) {
+      style = &classOrStructUseStyle;
+    } else if (referencedKind == CXCursor_ClassTemplatePartialSpecialization) {
+      style = &classOrStructUseStyle;
+    } else if (referencedKind == CXCursor_FunctionTemplate) {
+      style = &functionUseStyle;
+    } else if (referencedKind == CXCursor_TemplateTemplateParameter) {
+      style = &templateParameterUseStyle;
+    } else {
+      qDebug() << "Clang highlighting: Encountered CXCursor_TemplateRef cursor that references an unhandled cursor type: " << ClangString(clang_getCursorKindSpelling(referencedKind)).ToQString();
+    }
     DocumentRange range = CXSourceRangeToDocumentRange(clangExtent, *data->lineOffsets);
-    document->AddHighlightRange(range, false, qRgb(175, 126, 2), false);
+    document->AddHighlightRange(range, false, *style);
   } else if (kind == CXCursor_LabelStmt || kind == CXCursor_LabelRef) {
     DocumentRange spellingRange = CXSourceRangeToDocumentRange(clang_Cursor_getSpellingNameRange(cursor, 0, 0), *data->lineOffsets);
-    document->AddHighlightRange(spellingRange, false, qRgb(200, 0, 42), kind == CXCursor_LabelStmt);
+    document->AddHighlightRange(spellingRange, false, (kind == CXCursor_LabelStmt) ? labelStatementStyle : labelReferenceStyle);
   } else if (kind == CXCursor_CXXStaticCastExpr ||
              kind == CXCursor_CXXDynamicCastExpr ||
              kind == CXCursor_CXXReinterpretCastExpr ||
@@ -517,15 +608,15 @@ CXChildVisitResult VisitClangAST_AddHighlightingAndContexts(CXCursor cursor, CXC
 //     document->AddHighlightRange(range, false, qRgb(0, 0, 0), true);
   } else if (kind == CXCursor_IntegerLiteral) {
     DocumentRange range = CXSourceRangeToDocumentRange(clangExtent, *data->lineOffsets);
-    document->AddHighlightRange(range, false, qRgb(185, 143, 35), false);
+    document->AddHighlightRange(range, false, integerLiteralStyle);
   } else if (kind == CXCursor_FloatingLiteral ||
              kind == CXCursor_ImaginaryLiteral) {
     DocumentRange range = CXSourceRangeToDocumentRange(clangExtent, *data->lineOffsets);
-    document->AddHighlightRange(range, false, qRgb(185, 85, 35), false);
+    document->AddHighlightRange(range, false, (kind == CXCursor_FloatingLiteral) ? floatingLiteralStyle : imaginaryLiteralStyle);
   } else if (kind == CXCursor_StringLiteral ||
              kind == CXCursor_CharacterLiteral) {
     DocumentRange range = CXSourceRangeToDocumentRange(clangExtent, *data->lineOffsets);
-    document->AddHighlightRange(range, true, qRgb(192, 8, 8), false);
+    document->AddHighlightRange(range, true, (kind == CXCursor_StringLiteral) ? stringLiteralStyle : characterLiteralStyle);
   } else if (kind == CXCursor_MacroDefinition) {
 //     DocumentRange range = CXSourceRangeToDocumentRange(clangExtent);
     
@@ -551,14 +642,14 @@ CXChildVisitResult VisitClangAST_AddHighlightingAndContexts(CXCursor cursor, CXC
 //     }
     
     DocumentRange nameRange = CXSourceRangeToDocumentRange(clang_Cursor_getSpellingNameRange(cursor, 0, 0), *data->lineOffsets);
-    document->AddHighlightRange(nameRange, false, qRgb(164, 18, 57), true);
+    document->AddHighlightRange(nameRange, false, macroDefinitionStyle);
   } else if (kind == CXCursor_InclusionDirective) {
     DocumentRange range = CXSourceRangeToDocumentRange(clangExtent, *data->lineOffsets);
     
     DocumentRange includeRange;
     includeRange.start = range.start;
     includeRange.end.offset = range.start.offset + 8;
-    document->AddHighlightRange(includeRange, false, qRgb(5, 113, 44), false);
+    document->AddHighlightRange(includeRange, false, preprocessorDirectiveStyle);
     
     // Highlight the path range. Unfortunately, it seems that we cannot retrieve
     // it directly. Include statements can go over multiple lines (with the \ separator)
@@ -581,13 +672,13 @@ CXChildVisitResult VisitClangAST_AddHighlightingAndContexts(CXCursor cursor, CXC
           DocumentRange pathRange;
           pathRange.end = range.end;
           pathRange.start = range.end - (rangeText.size() - c);
-          document->AddHighlightRange(pathRange, true, qRgb(255, 85, 0), false);
+          document->AddHighlightRange(pathRange, true, includePathStyle);
         }
       }
     }
   } else if (kind == CXCursor_Namespace || kind == CXCursor_NamespaceRef) {
     DocumentRange spellingRange = CXSourceRangeToDocumentRange(clang_Cursor_getSpellingNameRange(cursor, 0, 0), *data->lineOffsets);
-    document->AddHighlightRange(spellingRange, false, qRgb(127, 127, 127), kind == CXCursor_Namespace);
+    document->AddHighlightRange(spellingRange, false, (kind == CXCursor_Namespace) ? namespaceDefinitionStyle : namespaceUseStyle);
   }
   
   if (addContext) {

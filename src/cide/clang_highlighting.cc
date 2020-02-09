@@ -11,104 +11,6 @@
 #include "cide/settings.h"
 #include "cide/text_utils.h"
 
-// // These colors are taken from: https://ethanschoonover.com/solarized/
-// constexpr int kPerVariableColorPoolSize = 16;
-// QColor perVariableColorPool[kPerVariableColorPoolSize] = {
-//     qRgb(  0,  43,  54),
-//     qRgb(  7,  54,  66),
-//     qRgb( 88, 110, 117),
-//     qRgb(101, 123, 131),
-//     qRgb(131, 148, 150),
-//     qRgb(147, 161, 161),
-//     qRgb(238, 232, 213),
-//     qRgb(253, 246, 227),
-//     qRgb(181, 137,   0),
-//     qRgb(203,  75,  22),
-//     qRgb(220,  50,  47),
-//     qRgb(211,  54, 130),
-//     qRgb(108, 113, 196),
-//     qRgb( 38, 139, 210),
-//     qRgb( 42, 161, 152),
-//     qRgb(133, 153,   0)};
-
-// // These colors are taken from: http://colorbrewer2.org/#type=qualitative&scheme=Paired&n=12
-// // This seems well-suited, but some of the colors are a bit bright for our purpose.
-// constexpr int kPerVariableColorPoolSize = 10;
-// QColor perVariableColorPool[kPerVariableColorPoolSize] = {
-//     qRgb(51,160,44),  // medium green
-//     qRgb(178,223,138),  // light green
-//     qRgb(31,120,180),  // medium blue
-//     qRgb(166,206,227),  // light blue
-//     qRgb(227,26,28),  // dark red
-//     qRgb(251,154,153),  // beige
-//     qRgb(106,61,154),  // dark purple
-//     qRgb(202,178,214),  // grayish purple
-//     qRgb(177,89,40), // brown
-//     qRgb(253,191,111),  // light orange
-//     // qRgb(255,127,0),  // saturated orange, too similar to our "class" color
-//     // qRgb(255,255,153),  // yellow, too bright
-//     };
-
-// // These colors are taken from: https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/
-// constexpr int kPerVariableColorPoolSize = 14;
-// QColor perVariableColorPool[kPerVariableColorPoolSize] = {
-//     qRgb(60, 180, 75),  // green
-//     qRgb(230, 25, 75),  // red
-//     // qRgb(255, 225, 25),  // yellow, too bright
-//     // qRgb(0, 130, 200),  // blue, similar to our "function" color
-//     // qRgb(245, 130, 48),  // orange, similar to our "class" color
-//     qRgb(145, 30, 180),  // purple
-//     qRgb(70, 240, 240),  // cyan
-//     qRgb(240, 50, 230),  // magenta
-//     qRgb(210, 245, 60),  // lime
-//     qRgb(250, 190, 190),  // pink
-//     qRgb(0, 128, 128),  // teal
-//     qRgb(230, 190, 255),  // lavender
-//     qRgb(170, 110, 40),  // brown
-//     // qRgb(255, 250, 200),  // beige, too bright
-//     qRgb(128, 0, 0),  // maroon
-//     qRgb(170, 255, 195),  // mint
-//     qRgb(128, 128, 0),  // olive
-//     // qRgb(255, 215, 180),  // apricot, bright and similar to our "class" color
-//     qRgb(0, 0, 128),  // navy
-//     // qRgb(128, 128, 128),  // gray
-//     // qRgb(255, 255, 255),  // white
-//     // qRgb(0, 0, 0)  // black
-// };
-
-// These colors are taken from:
-// P. Green-Armytage (2010): A Colour Alphabet and the Limits of Colour Coding. // Colour: Design & Creativity (5) (2010): 10, 1-23
-constexpr int kPerVariableColorPoolSize = 15;
-QColor perVariableColorPool[kPerVariableColorPoolSize] = {
-    qRgb(255,0,16),  // red
-    qRgb(0,117,220),  // medium blue
-    qRgb(43,206,72),  // medium green
-    qRgb(153,63,0),  // brown
-    qRgb(0,92,49),  // dark green
-    qRgb(143,124,0),  // green-brown
-    qRgb(157,204,0),  // poison green
-    qRgb(194,0,136),  // reddish purple
-    qRgb(255,168,187),  // reddish beige
-    qRgb(66,102,0),  // dark poison green
-    qRgb(94,241,242),  // cyan
-    qRgb(0,153,143),  // medium blueish greenish
-    qRgb(116,10,255),  // dark purple
-    qRgb(153,0,0),  // dark cinnober red
-    qRgb(240,163,255),  // lavender
-//     qRgb(255,255,128),  // too bright
-//     qRgb(255,255,0),  // too bright
-//     qRgb(255,80,5),  // too similar to our "class" color
-//     qRgb(76,0,92),  // too dark
-//     qRgb(25,25,25),  // too dark
-//     qRgb(255,164,5),  // too similar to our "class" color
-//     qRgb(0,51,128),  // blue, too similar to our "function" color
-//     qRgb(128,128,128),  // gray, too similar to our "comment" color
-//     qRgb(224,255,102),  // bright poison green, too bright
-//     qRgb(255,204,153),  // beige, too bright
-//     qRgb(148,255,181),  // light blueish green, too bright
-};
-
-
 bool IsWithinComment(int character, HighlightingASTVisitorData* visitorData) {
   for (const DocumentRange& range : visitorData->commentRanges) {
     if (range.ContainsCharacter(character)) {
@@ -432,14 +334,14 @@ CXChildVisitResult VisitClangAST_AddHighlightingAndContexts(CXCursor cursor, CXC
       
       // Determine whether to apply per-variable coloring to this definition.
       QColor overrideColor;
-      if (data->perVariableColoring && kind != CXCursor_FieldDecl) {
+      if (data->perVariableColoring && kind != CXCursor_FieldDecl && Settings::Instance().GetLocalVariableColorPoolSize() > 0) {
         CXCursor parent = clang_getCursorSemanticParent(cursor);
         CXCursorKind parentKind = clang_getCursorKind(parent);
         if (IsFunctionDeclLikeCursorKind(parentKind)) {
           // Apply per-variable coloring.
           unsigned offset;
           clang_getFileLocation(clang_getCursorLocation(cursor), nullptr, nullptr, nullptr, &offset);
-          overrideColor = perVariableColorPool[data->variableCounterPerFunction % kPerVariableColorPoolSize];
+          overrideColor = Settings::Instance().GetLocalVariableColor(data->variableCounterPerFunction % Settings::Instance().GetLocalVariableColorPoolSize());
           data->perVariableColorMap[offset] = overrideColor;
           ++ data->variableCounterPerFunction;
         }

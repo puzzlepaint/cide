@@ -238,6 +238,13 @@ class Settings : public QObject {
   inline const ConfigurableTextStyle& GetConfiguredTextStyle(TextStyle id) const { return configuredTextStyles[static_cast<int>(id)]; }
   void SetConfigurableTextStyle(TextStyle id, bool affectsText, const QRgb& textColor, bool bold, bool affectsBackground, const QRgb& backgroundColor);
   
+  void LoadLocalVariableColorPool();
+  void SaveLocalVariableColorPool();
+  inline int GetLocalVariableColorPoolSize() const { return localVariableColorPool.size(); }
+  inline QRgb GetLocalVariableColor(int index) const { return localVariableColorPool[index]; }
+  /// Make sure to call SaveLocalVariableColorPool() after calling this function.
+  inline void SetLocalVariableColor(int index, const QRgb& color) { localVariableColorPool[index] = color; }
+  inline void SetLocalVariableColors(const std::vector<QRgb>& colors) { localVariableColorPool = colors; SaveLocalVariableColorPool(); }
   
   /// (Re-)loads the fonts. This must be done after changing the font size.
   void ReloadFonts();
@@ -446,6 +453,8 @@ class Settings : public QObject {
   
   /// Indexed by static_cast<int>(textstyle_id) with textstyle_id of type TextStyle.
   std::vector<ConfigurableTextStyle> configuredTextStyles;
+  
+  std::vector<QRgb> localVariableColorPool;
 };
 
 
@@ -525,6 +534,8 @@ class SettingsDialog : public QDialog {
   void UpdateTextColorLabel(const QRgb& color);
   void UpdateBackgroundColorLabel(const QRgb& color);
   void UpdateTextStyleItem(QTableWidgetItem* item, const Settings::ConfigurableTextStyle& style);
+  void UpdateLocalVariableColorSettings();
+  void UpdateLocalColorsTable();
   
   template <typename Callable>
   void EditCurrentTextStyle(Callable editFunc) {
@@ -539,7 +550,9 @@ class SettingsDialog : public QDialog {
   }
   
   bool listenToColorUpdates;
+  
   QTableWidget* colorsTable;
+  
   QTableWidget* textStylesTable;
   QCheckBox* affectsTextCheck;
   QLabel* textColorLabel;
@@ -548,6 +561,13 @@ class SettingsDialog : public QDialog {
   QCheckBox* affectsBackgroundCheck;
   QLabel* backgroundColorLabel;
   QPushButton* backgroundColorButton;
+  
+  QTableWidget* localColorsTable;
+  QPushButton* localColorMoveUpButton;
+  QPushButton* localColorMoveDownButton;
+  QPushButton* localColorChangeButton;
+  QPushButton* localColorDeleteButton;
+  QPushButton* localColorInsertButton;
   
   // "Debugging" category
   QWidget* CreateDebuggingCategory();

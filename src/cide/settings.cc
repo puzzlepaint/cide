@@ -178,6 +178,62 @@ void Settings::SetConfigurableTextStyle(TextStyle id, bool affectsText, const QR
   settings.setValue(style.keyName + QStringLiteral("/background_color"), ToHexColorString(backgroundColor));
 }
 
+void Settings::LoadLocalVariableColorPool() {
+  QSettings settings;
+  int size = settings.beginReadArray("local_variable_color_pool");
+  if (size == 0) {
+    // Set the defaults.
+    // These colors are taken from:
+    // P. Green-Armytage (2010): A Colour Alphabet and the Limits of Colour Coding. // Colour: Design & Creativity (5) (2010): 10, 1-23
+    localVariableColorPool.clear();
+    localVariableColorPool.reserve(15);
+    localVariableColorPool.emplace_back(qRgb(255,0,16));     // red
+    localVariableColorPool.emplace_back(qRgb(0,117,220));    // medium blue
+    localVariableColorPool.emplace_back(qRgb(43,206,72));    // medium green
+    localVariableColorPool.emplace_back(qRgb(153,63,0));     // brown
+    localVariableColorPool.emplace_back(qRgb(0,92,49));      // dark green
+    localVariableColorPool.emplace_back(qRgb(143,124,0));    // green-brown
+    localVariableColorPool.emplace_back(qRgb(157,204,0));    // poison green
+    localVariableColorPool.emplace_back(qRgb(194,0,136));    // reddish purple
+    localVariableColorPool.emplace_back(qRgb(255,168,187));  // reddish beige
+    localVariableColorPool.emplace_back(qRgb(66,102,0));     // dark poison green
+    localVariableColorPool.emplace_back(qRgb(94,241,242));   // cyan
+    localVariableColorPool.emplace_back(qRgb(0,153,143));    // medium blueish greenish
+    localVariableColorPool.emplace_back(qRgb(116,10,255));   // dark purple
+    localVariableColorPool.emplace_back(qRgb(153,0,0));      // dark cinnober red
+    localVariableColorPool.emplace_back(qRgb(240,163,255));  // lavender
+    //     qRgb(255,255,128),  // too bright
+    //     qRgb(255,255,0),    // too bright
+    //     qRgb(255,80,5),     // too similar to our "class" color
+    //     qRgb(76,0,92),      // too dark
+    //     qRgb(25,25,25),     // too dark
+    //     qRgb(255,164,5),    // too similar to our "class" color
+    //     qRgb(0,51,128),     // blue, too similar to our "function" color
+    //     qRgb(128,128,128),  // gray, too similar to our "comment" color
+    //     qRgb(224,255,102),  // bright poison green, too bright
+    //     qRgb(255,204,153),  // beige, too bright
+    //     qRgb(148,255,181),  // light blueish green, too bright
+  } else {
+    localVariableColorPool.resize(size);
+    for (int i = 0; i < size; ++ i) {
+      settings.setArrayIndex(i);
+      localVariableColorPool[i] = ParseHexColor(settings.value("color").toString());
+    }
+  }
+  settings.endArray();
+}
+
+void Settings::SaveLocalVariableColorPool() {
+  QSettings settings;
+  settings.beginWriteArray("local_variable_color_pool");
+  settings.remove("");  // remove previous entries in this group
+  for (int i = 0; i < localVariableColorPool.size(); ++ i) {
+    settings.setArrayIndex(i);
+    settings.setValue("color", ToHexColorString(localVariableColorPool[i]));
+  }
+  settings.endArray();
+}
+
 void Settings::ReloadFonts() {
   int regularFontID = QFontDatabase::addApplicationFont(QDir(qApp->applicationDirPath()).filePath("resources/Inconsolata/Inconsolata-Regular.ttf"));
   int boldFontID = QFontDatabase::addApplicationFont(QDir(qApp->applicationDirPath()).filePath("resources/Inconsolata/Inconsolata-Bold.ttf"));
@@ -207,6 +263,9 @@ Settings::Settings() {
   
   // Load fonts
   ReloadFonts();
+  
+  // Load the local-variable color pool
+  LoadLocalVariableColorPool();
   
   // Set up the list of actions for which custom shortcuts can be configured
   AddConfigurableShortcut(tr("Build current target"), buildCurrentTargetShortcut, QKeySequence(Qt::Key_F7));
@@ -308,9 +367,6 @@ Settings::Settings() {
   AddConfigurableTextStyle(TextStyle::IncludePath, tr("Include path"), "include_path", true, qRgb(255, 85, 0), false, false, qRgb(255, 255, 255));
   AddConfigurableTextStyle(TextStyle::NamespaceDefinition, tr("Namespace definition"), "namespace_definition", true, qRgb(127, 127, 127), true, false, qRgb(255, 255, 255));
   AddConfigurableTextStyle(TextStyle::NamespaceUse, tr("Namespace use"), "namespace_use", true, qRgb(127, 127, 127), false, false, qRgb(255, 255, 255));
-  
-  
-  // AddConfigurableTextStyle(TextStyle::TODO, "TODO", "TODO", TODO, TODO, TODO, TODO, TODO)
 }
 
 void Settings::ShowSettingsWindow(QWidget* parent) {
@@ -814,10 +870,49 @@ QWidget* SettingsDialog::CreateColorsCategory() {
   QWidget* textStylesContainer = new QWidget();
   textStylesContainer->setLayout(textStylesLayout);
   
+  // "Local-variable color pool" tab
+  QLabel* localColorsLabel = new QLabel(tr("This is the pool of colors that are used for coloring local variables if the \"Per-variable coloring\" option is active. Colors are assigned in the order of appearance."));
+  localColorsLabel->setWordWrap(true);
+  
+  localColorsTable = new QTableWidget(Settings::Instance().GetLocalVariableColorPoolSize(), 1);
+  localColorsTable->horizontalHeader()->hide();
+  localColorsTable->verticalHeader()->hide();
+  UpdateLocalColorsTable();
+  localColorsTable->setSortingEnabled(false);
+  
+  localColorMoveUpButton = new QPushButton(tr("Move up"));
+  localColorMoveDownButton = new QPushButton(tr("Move down"));
+  localColorChangeButton = new QPushButton(tr("Change"));
+  localColorDeleteButton = new QPushButton(tr("Delete"));
+  localColorInsertButton = new QPushButton(tr("Insert"));
+  
+  QPushButton* localColorResetButton = new QPushButton(tr("Reset to defaults"));
+  
+  QHBoxLayout* localVariableButtonsLayout = new QHBoxLayout();
+  localVariableButtonsLayout->addWidget(localColorMoveUpButton);
+  localVariableButtonsLayout->addWidget(localColorMoveDownButton);
+  localVariableButtonsLayout->addWidget(localColorChangeButton);
+  localVariableButtonsLayout->addWidget(localColorDeleteButton);
+  localVariableButtonsLayout->addWidget(localColorInsertButton);
+  
+  QHBoxLayout* localVariableButtons2Layout = new QHBoxLayout();
+  localVariableButtons2Layout->addStretch(1);
+  localVariableButtons2Layout->addWidget(localColorResetButton);
+  
+  QVBoxLayout* localColorsLayout = new QVBoxLayout();
+  localColorsLayout->addWidget(localColorsLabel);
+  localColorsLayout->addWidget(localColorsTable);
+  localColorsLayout->addLayout(localVariableButtonsLayout);
+  localColorsLayout->addLayout(localVariableButtons2Layout);
+  
+  QWidget* localColorsContainer = new QWidget();
+  localColorsContainer->setLayout(localColorsLayout);
+  
   // Tab widget and general layout.
   QTabWidget* tabWidget = new QTabWidget();
   tabWidget->addTab(colorsTable, tr("Colors"));
   tabWidget->addTab(textStylesContainer, tr("Text styles"));
+  tabWidget->addTab(localColorsContainer, tr("Local-variable color pool"));
   
   QVBoxLayout* layout = new QVBoxLayout();
   layout->addWidget(tabWidget);
@@ -894,6 +989,99 @@ QWidget* SettingsDialog::CreateColorsCategory() {
   });
   emit textStylesTable->currentItemChanged(textStylesTable->currentItem(), nullptr);
   
+  connect(localColorsTable, &QTableWidget::currentItemChanged, [&](QTableWidgetItem* item, QTableWidgetItem* /*previous*/) {
+    localColorMoveUpButton->setEnabled(item != nullptr && item->row() > 0);
+    localColorMoveDownButton->setEnabled(item != nullptr && item->row() < localColorsTable->rowCount() - 1);
+    localColorChangeButton->setEnabled(item != nullptr);
+    localColorDeleteButton->setEnabled(item != nullptr);
+  });
+  emit localColorsTable->currentItemChanged(localColorsTable->currentItem(), nullptr);
+  connect(localColorMoveUpButton, &QPushButton::clicked, [&]() {
+    QTableWidgetItem* item = localColorsTable->currentItem();
+    if (item == nullptr || item->row() == 0) {
+      return;
+    }
+    QTableWidgetItem* otherItem = localColorsTable->item(item->row() - 1, 0);
+    
+    QColor temp = item->textColor();
+    item->setTextColor(otherItem->textColor());
+    otherItem->setTextColor(temp);
+    
+    UpdateLocalVariableColorSettings();
+  });
+  connect(localColorMoveDownButton, &QPushButton::clicked, [&]() {
+    QTableWidgetItem* item = localColorsTable->currentItem();
+    if (item == nullptr || item->row() >= localColorsTable->rowCount() - 1) {
+      return;
+    }
+    QTableWidgetItem* otherItem = localColorsTable->item(item->row() + 1, 0);
+    
+    QColor temp = item->textColor();
+    item->setTextColor(otherItem->textColor());
+    otherItem->setTextColor(temp);
+    
+    UpdateLocalVariableColorSettings();
+  });
+  connect(localColorChangeButton, &QPushButton::clicked, [&]() {
+    QTableWidgetItem* item = localColorsTable->currentItem();
+    if (item == nullptr) {
+      return;
+    }
+    QColor result = QColorDialog::getColor(item->textColor(), this);
+    if (result.isValid()) {
+      Settings::Instance().SetLocalVariableColor(item->row(), result.rgb());
+      Settings::Instance().SaveLocalVariableColorPool();
+      item->setTextColor(result);
+    }
+  });
+  connect(localColorDeleteButton, &QPushButton::clicked, [&]() {
+    QTableWidgetItem* item = localColorsTable->currentItem();
+    if (item == nullptr) {
+      return;
+    }
+    int row = item->row();
+    delete item;
+    localColorsTable->removeRow(row);
+    UpdateLocalVariableColorSettings();
+  });
+  connect(localColorInsertButton, &QPushButton::clicked, [&]() {
+    QTableWidgetItem* item = localColorsTable->currentItem();
+    int row = item ? item->row() : localColorsTable->rowCount();
+    localColorsTable->insertRow(row);
+    
+    QTableWidgetItem* newItem = new QTableWidgetItem(tr("example text"));
+    newItem->setFlags(Qt::ItemIsEnabled);
+    newItem->setFont(Settings::Instance().GetDefaultFont());
+    newItem->setTextColor(Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::Default).textColor);
+    newItem->setBackgroundColor(Settings::Instance().GetConfiguredColor(Settings::Color::EditorBackground));
+    localColorsTable->setItem(row, 0, newItem);
+    
+    UpdateLocalVariableColorSettings();
+  });
+  connect(localColorResetButton, &QPushButton::clicked, [&]() {
+    if (QMessageBox::question(this, tr("Reset to defaults"), tr("Are you sure to reset the local variable color pool to the default?"), QMessageBox::Yes | QMessageBox::No) == QMessageBox::No) {
+      return;
+    }
+    
+    QSettings settings;
+    settings.beginWriteArray("local_variable_color_pool");
+    settings.remove("");  // remove previous entries in this group
+    settings.endArray();
+    
+    Settings::Instance().LoadLocalVariableColorPool();
+    UpdateLocalColorsTable();
+  });
+  
+  connect(tabWidget, &QTabWidget::currentChanged, [&](int index) {
+    // Upon chaning to the local-variable colors tab, update the background color
+    // of all items in that table to the current configured editor background color.
+    if (index == 2) {
+      for (int row = 0; row < localColorsTable->rowCount(); ++ row) {
+        localColorsTable->item(row, 0)->setBackgroundColor(Settings::Instance().GetConfiguredColor(Settings::Color::EditorBackground));
+      }
+    }
+  });
+  
   QWidget* categoryWidget = new QWidget();
   categoryWidget->setLayout(layout);
   return categoryWidget;
@@ -923,6 +1111,30 @@ void SettingsDialog::UpdateTextStyleItem(QTableWidgetItem* item, const Settings:
   } else {
     QTableWidgetItem defaultItem;
     item->setBackground(defaultItem.background());
+  }
+}
+
+void SettingsDialog::UpdateLocalVariableColorSettings() {
+  std::vector<QRgb> colors(localColorsTable->rowCount());
+  for (int row = 0; row < localColorsTable->rowCount(); ++ row) {
+    colors[row] = localColorsTable->item(row, 0)->textColor().rgb();
+  }
+  Settings::Instance().SetLocalVariableColors(colors);
+}
+
+void SettingsDialog::UpdateLocalColorsTable() {
+  localColorsTable->clearContents();
+  localColorsTable->setRowCount(Settings::Instance().GetLocalVariableColorPoolSize());
+  
+  for (int row = 0; row < Settings::Instance().GetLocalVariableColorPoolSize(); ++ row) {
+    QRgb color = Settings::Instance().GetLocalVariableColor(row);
+    
+    QTableWidgetItem* newItem = new QTableWidgetItem(tr("example text"));
+    newItem->setFlags(Qt::ItemIsEnabled);
+    newItem->setFont(Settings::Instance().GetDefaultFont());
+    newItem->setTextColor(color);
+    newItem->setBackgroundColor(Settings::Instance().GetConfiguredColor(Settings::Color::EditorBackground));
+    localColorsTable->setItem(row, 0, newItem);
   }
 }
 

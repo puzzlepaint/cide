@@ -56,7 +56,6 @@ In particular, be aware of the following:
 * At the moment, CIDE has only *very* basic debugging support, which only works on Linux.
 * CMake, version 3.14 or later, currently is the only supported build system for projects developed with CIDE.
 * There is no support for high-DPI monitors.
-* There is no support for different color schemes; only a bright scheme is implemented.
 * All files are assumed to be in UTF-8 encoding, and line endings are always saved as `\n` (not `\r\n`).
 
 

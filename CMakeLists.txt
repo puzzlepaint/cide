@@ -175,9 +175,18 @@ target_compile_options(CIDEBaseLib PUBLIC
 
 # --- CIDE executable ---
 
-add_executable(CIDE WIN32
+set(CIDE_SRCS
   src/cide/main.cc
   resources_packed/resources.qrc
+)
+if (WIN32)
+  set(CIDE_SRCS
+    ${CIDE_SRCS}
+    resources_packed/cide.rc
+  )
+endif()
+add_executable(CIDE WIN32
+  ${CIDE_SRCS}
 )
 target_link_libraries(CIDE
   CIDEBaseLib

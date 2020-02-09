@@ -5,7 +5,7 @@ cmake_policy(SET CMP0054 NEW)
 cmake_policy(SET CMP0071 NEW)
 cmake_policy(SET CMP0074 NEW)
 
-project(CIDE)
+project(CIDE LANGUAGES CXX)
 
 # Make CMake find the Find<Package>.cmake files in the cmake subdirectory.
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")

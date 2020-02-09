@@ -22,6 +22,7 @@ class NewProjectDialog : public QDialog {
  private:
   bool CreateNewProject();
   bool CreateProjectForExistingCMakeListsTxtFile();
+  QString TryGuessProjectName();
   
   QLineEdit* nameEdit = nullptr;
   QLineEdit* folderEdit = nullptr;

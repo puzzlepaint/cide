@@ -22,7 +22,7 @@ NewProjectDialog::NewProjectDialog(const QString& existingCMakeFilePath, QWidget
   setWindowIcon(QIcon(":/cide/cide.png"));
   
   QLabel* nameLabel = new QLabel(tr("Project name (must be a valid filename): "));
-  nameEdit = new QLineEdit();
+  nameEdit = new QLineEdit(TryGuessProjectName());
   QHBoxLayout* nameLayout = new QHBoxLayout();
   nameLayout->addWidget(nameLabel);
   nameLayout->addWidget(nameEdit);
@@ -209,4 +209,53 @@ bool NewProjectDialog::CreateProjectForExistingCMakeListsTxtFile() {
   projectFile.close();
   
   return true;
+}
+
+QString NewProjectDialog::TryGuessProjectName() {
+  if (existingCMakeFilePath.isEmpty()) {
+    return QStringLiteral("");
+  }
+  
+  // Try to heuristically find the project name in the CMakeLists.txt file.
+  QFile file(existingCMakeFilePath);
+  if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    QString text = QString::fromUtf8(file.readAll());  // TODO: Assuming UTF-8, this could be made configurable
+    int cursor = 0;
+    while (true) {
+      cursor = text.indexOf("project", cursor, Qt::CaseInsensitive);
+      if (cursor < 0) {
+        break;
+      }
+      cursor += 7;  // strlen("project")
+      
+      int leftBracketPos = cursor;
+      while (leftBracketPos < text.size() && text[leftBracketPos].isSpace()) {
+        ++ leftBracketPos;
+      }
+      if (text[leftBracketPos] == '(') {
+        int rightBracketPos = text.indexOf(')', leftBracketPos + 1);
+        if (rightBracketPos >= 0) {
+          QString arguments = text.mid(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1).trimmed();
+          QString projectName;
+          bool haveString = false;
+          for (int i = 0; i < arguments.size(); ++ i) {
+            QChar c = arguments[i];
+            if (i == 0 && c == '"') {
+              haveString = true;
+              continue;
+            } else if (haveString && c == '"') {
+              return projectName;
+            } else if (c.isSpace()) {
+              return projectName;
+            }
+            projectName += c;
+          }
+          return projectName;
+        }
+      }
+    }
+  }
+  
+  // If we did not find the project name in the CMakeLists.txt file, use the file's folder name instead.
+  return QFileInfo(existingCMakeFilePath).dir().dirName();
 }

@@ -245,6 +245,8 @@ Note that the shortcuts are configurable in the program settings.
 
 ### Tips and tricks ###
 
+* The program can be configured in the program settings, however, do not forget
+  to also check the project settings for additional per-project options.
 * To rename a variable/function/etc., either right-click its name and choose
   the corresponding menu option, or set the cursor to its name and press F2.
 * Hovering something in the code highlights all of its occurrences in the

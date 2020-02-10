@@ -68,6 +68,8 @@ void ProjectTreeView::Initialize(MainWindow* mainWindow, QAction* showProjectFil
   mainWindow->addDockWidget(Qt::LeftDockWidgetArea, dock);
   
   connect(&watcher, &QFileSystemWatcher::directoryChanged, this, &ProjectTreeView::FileWatcherNotification);
+  gitUpdateTimer.setSingleShot(true);
+  connect(&gitUpdateTimer, &QTimer::timeout, this, &ProjectTreeView::GitUpdate);
   connect(&gitWatcher, &QFileSystemWatcher::fileChanged, this, &ProjectTreeView::GitWatcherNotification);
   
   connect(mainWindow, &MainWindow::OpenProjectsChanged, this, &ProjectTreeView::UpdateProjects);
@@ -316,10 +318,17 @@ void ProjectTreeView::FileWatcherNotification(const QString& path) {
 }
 
 void ProjectTreeView::GitWatcherNotification(const QString& path) {
-  UpdateGitStatus();
+  // Wait a bit before checking the git state. This might help to perform the
+  // update at a time where the external changes have completed, rather than
+  // checking too early.
+  gitUpdateTimer.start(100);
   
   // Re-adding the path seemed to be necessary to get further notifications
   gitWatcher.addPath(path);
+}
+
+void ProjectTreeView::GitUpdate() {
+  UpdateGitStatus();
   
   // Schedule all open files for a git diff update.
   // TODO: This logic seems like it would better be placed on a higher level,

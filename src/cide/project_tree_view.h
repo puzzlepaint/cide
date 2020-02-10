@@ -7,9 +7,10 @@
 #include <memory>
 #include <unordered_map>
 
-#include <QObject>
 #include <QFileIconProvider>
 #include <QFileSystemWatcher>
+#include <QObject>
+#include <QTimer>
 
 #include "cide/util.h"
 
@@ -48,6 +49,7 @@ class ProjectTreeView : public QObject {
   
   void FileWatcherNotification(const QString& path);
   void GitWatcherNotification(const QString& path);
+  void GitUpdate();
   
   void ItemExpanded(QTreeWidgetItem* item);
   void ItemCollapsed(QTreeWidgetItem* item);
@@ -109,6 +111,7 @@ class ProjectTreeView : public QObject {
   
   std::unordered_map<QString, std::shared_ptr<ProjectGitStatus>> projectGitStatuses;
   QFileSystemWatcher gitWatcher;
+  QTimer gitUpdateTimer;
   
   QFileSystemWatcher watcher;
   

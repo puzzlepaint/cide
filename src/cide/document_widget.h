@@ -66,8 +66,10 @@ class DocumentWidget : public QWidget {
   /// If clamp is true, always returns the last character of the given line,
   /// respectively the last line, if the position is out of bounds. In this
   /// case, the function always returns true. Note that the character may be
-  /// invalid then: For empty lines, character 0 is returned.
-  bool GetCharacterAt(int x, int y, bool clamp, int* line, int* character);
+  /// invalid then: For empty lines, character 0 is returned. If wasClamped
+  /// is non-null, it is set to true in case the position was out-of-bounds
+  /// and got clamped.
+  bool GetCharacterAt(int x, int y, bool clamp, int* line, int* character, bool* wasClamped = nullptr);
   
   /// Returns the DocumentLocation at which the cursor would be placed when
   /// clicking pixel (x, y). Any of loc, line, and col may be nullptr.

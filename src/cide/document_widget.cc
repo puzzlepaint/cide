@@ -370,12 +370,20 @@ QString DocumentWidget::GetSelectedText() const {
   return document->TextForRange(selection);
 }
 
-bool DocumentWidget::GetCharacterAt(int x, int y, bool clamp, int* line, int* character) {
+bool DocumentWidget::GetCharacterAt(int x, int y, bool clamp, int* line, int* character, bool* wasClamped) {
+  if (wasClamped) {
+    *wasClamped = false;
+  }
+  
   *line = (yScroll + y) / lineHeight;
-  if (!clamp && *line >= layoutLines.size()) {
-    return false;
-  } else {
-    *line = std::min(static_cast<int>(layoutLines.size()) - 1, *line);
+  if (*line >= layoutLines.size()) {
+    if (!clamp) {
+      return false;
+    }
+    if (wasClamped) {
+      *wasClamped = true;
+    }
+    *line = static_cast<int>(layoutLines.size()) - 1;
   }
   
   QString lineText = document->TextForRange(layoutLines[*line]);
@@ -393,6 +401,9 @@ bool DocumentWidget::GetCharacterAt(int x, int y, bool clamp, int* line, int* ch
   }
   
   if (clamp) {
+    if (wasClamped) {
+      *wasClamped = true;
+    }
     *character = lineText.isEmpty() ? 0 : (lineText.size() - 1);
     return true;
   } else {
@@ -2969,16 +2980,17 @@ void DocumentWidget::mouseMoveEvent(QMouseEvent* event) {
       DocumentRange initialWordRange = GetWordForCharacter(selectionDoubleClickOffset);
       
       int line, character;
-      GetCharacterAt(event->x(), event->y(), true, &line, &character);
+      bool wasClamped;
+      GetCharacterAt(event->x(), event->y(), true, &line, &character, &wasClamped);
       int offset = layoutLines[line].start.offset + character;
       QString lineText = document->TextForRange(layoutLines[line]);
-      if (character < lineText.size()) {
-        DocumentRange otherWordRange = GetWordForCharacter(offset);
-        initialWordRange.Add(otherWordRange);
-        SetSelection(initialWordRange);
-      } else {
+      if (wasClamped || character >= lineText.size()) {
         DocumentLocation otherLocation = DocumentLocation(offset);
         initialWordRange.Add(otherLocation);
+        SetSelection(initialWordRange);
+      } else {
+        DocumentRange otherWordRange = GetWordForCharacter(offset);
+        initialWordRange.Add(otherWordRange);
         SetSelection(initialWordRange);
       }
       

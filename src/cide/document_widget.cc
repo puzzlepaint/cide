@@ -655,6 +655,107 @@ void DocumentWidget::SetCodeTooltip(const DocumentRange& tooltipRange, const QSt
   }
 }
 
+void DocumentWidget::HandleMouseMoveEvent() {
+  if (!haveMouseMoveEvent) {
+    return;
+  }
+  haveMouseMoveEvent = false;
+  
+  if (!(lastMouseMoveEventButtons & Qt::LeftButton)) {
+    // Use the pointing-hand cursor when hovering over a fix-it button
+    bool cursorOverButton = false;
+    for (int buttonIndex = 0; buttonIndex < fixitButtons.size(); ++ buttonIndex) {
+      const FixitButton& button = fixitButtons[buttonIndex];
+      if (button.buttonRect.contains(lastMouseMoveEventPos)) {
+        cursorOverButton = true;
+      }
+    }
+    setCursor(cursorOverButton ? Qt::PointingHandCursor : ((lastMouseMoveEventPos.x() < sidebarWidth) ? Qt::ArrowCursor : Qt::IBeamCursor));
+    
+    if (lastMouseMoveEventPos.x() < sidebarWidth) {
+      // Check for hovering over line diffs
+      const LineDiff* hoveredDiff = nullptr;
+      
+      int line = (yScroll + lastMouseMoveEventPos.y()) / lineHeight;
+      
+      for (const LineDiff& diff : document->diffLines()) {
+        if (diff.type != LineDiff::Type::Removed &&
+            diff.line <= line &&
+            diff.line + diff.numLines > line) {
+          hoveredDiff = &diff;
+        }
+      }
+      
+      for (const LineDiff& diff : document->diffLines()) {
+        if (diff.type == LineDiff::Type::Removed &&
+            abs(lastMouseMoveEventPos.y() - (diff.line * lineHeight - yScroll)) <= std::min(sidebarWidth, lineHeight)) {
+          hoveredDiff = &diff;
+          break;
+        }
+      }
+      
+      std::vector<std::shared_ptr<Problem>> noHoveredProblems;
+      UpdateTooltip(lastMouseMoveEventPos, &noHoveredProblems, nullptr, nullptr, hoveredDiff);
+    } else {
+      if (!cursorOverButton) {
+        auto hoveredProblems = GetHoveredProblems();
+        UpdateTooltip(lastMouseMoveEventPos, hoveredProblems.empty() ? &hoveredProblems : nullptr, nullptr, nullptr, nullptr);
+        
+        // If hovering over a word and code info has not been requested for that
+        // word yet, request code info for it.
+        if (isCFile &&
+            !tooltipCodeRect.contains(lastMouseMoveEventPos) &&
+            !codeInfoRequestRect.contains(lastMouseMoveEventPos)) {
+          constexpr int kHoverDelayMilliseconds = 120;
+          mouseHoverTimer.start(kHoverDelayMilliseconds);
+          mouseHoverPosGlobal = lastMouseMoveEventGlobalPos;
+          mouseHoverPosLocal = lastMouseMoveEventPos;
+        }
+      }
+    }
+  }
+  
+  // Handle selection by dragging
+  if (lastMouseMoveEventButtons & Qt::LeftButton) {
+    CloseTooltip();
+    
+    if (selectionDoubleClickOffset == -1) {
+      // No double click has been done, perform normal selection
+      SetCursor(lastMouseMoveEventPos.x(), lastMouseMoveEventPos.y(), true);
+    } else {
+      // A double click has been done, perform word-wise selection
+      DocumentRange initialWordRange = GetWordForCharacter(selectionDoubleClickOffset);
+      
+      int line, character;
+      bool wasClamped;
+      GetCharacterAt(lastMouseMoveEventPos.x(), lastMouseMoveEventPos.y(), true, &line, &character, &wasClamped);
+      int offset = layoutLines[line].start.offset + character;
+      QString lineText = document->TextForRange(layoutLines[line]);
+      if (wasClamped || character >= lineText.size()) {
+        DocumentLocation otherLocation = DocumentLocation(offset);
+        initialWordRange.Add(otherLocation);
+        SetSelection(initialWordRange);
+      } else {
+        DocumentRange otherWordRange = GetWordForCharacter(offset);
+        initialWordRange.Add(otherWordRange);
+        SetSelection(initialWordRange);
+      }
+      
+      StartMovingCursor();
+      if (offset < selectionDoubleClickOffset) {
+        // Set the cursor to the start of the selection and preSelectionCursor to the end.
+        preSelectionCursor = selection.end;
+        SetCursorTo(selection.start);
+      } else {
+        // Set the cursor to the end of the selection and preSelectionCursor to the start.
+        preSelectionCursor = selection.start;
+        SetCursorTo(selection.end);
+      }
+      EndMovingCursor(false, true);
+    }
+  }
+}
+
 void DocumentWidget::ShowRightClickMenu(const QString& clickedCursorUSR, const QString& clickedCursorSpelling, bool cursorHasLocalDefinition, const QString& clickedTokenSpelling, const DocumentRange& clickedTokenRange) {
   if (!isVisible() || clickedCursorSpelling.isEmpty() || clickedCursorUSR.isEmpty()) {
     return;
@@ -2920,99 +3021,19 @@ void DocumentWidget::mousePressEvent(QMouseEvent* event) {
 }
 
 void DocumentWidget::mouseMoveEvent(QMouseEvent* event) {
-  if (!(event->buttons() & Qt::LeftButton)) {
-    // Use the pointing-hand cursor when hovering over a fix-it button
-    bool cursorOverButton = false;
-    for (int buttonIndex = 0; buttonIndex < fixitButtons.size(); ++ buttonIndex) {
-      const FixitButton& button = fixitButtons[buttonIndex];
-      if (button.buttonRect.contains(event->pos())) {
-        cursorOverButton = true;
-      }
-    }
-    setCursor(cursorOverButton ? Qt::PointingHandCursor : ((event->x() < sidebarWidth) ? Qt::ArrowCursor : Qt::IBeamCursor));
-    
-    if (event->x() < sidebarWidth) {
-      // Check for hovering over line diffs
-      const LineDiff* hoveredDiff = nullptr;
-      
-      int line = (yScroll + event->y()) / lineHeight;
-      
-      for (const LineDiff& diff : document->diffLines()) {
-        if (diff.type != LineDiff::Type::Removed &&
-            diff.line <= line &&
-            diff.line + diff.numLines > line) {
-          hoveredDiff = &diff;
-        }
-      }
-      
-      for (const LineDiff& diff : document->diffLines()) {
-        if (diff.type == LineDiff::Type::Removed &&
-            abs(event->y() - (diff.line * lineHeight - yScroll)) <= std::min(sidebarWidth, lineHeight)) {
-          hoveredDiff = &diff;
-          break;
-        }
-      }
-      
-      std::vector<std::shared_ptr<Problem>> noHoveredProblems;
-      UpdateTooltip(event->pos(), &noHoveredProblems, nullptr, nullptr, hoveredDiff);
-    } else {
-      if (!cursorOverButton) {
-        auto hoveredProblems = GetHoveredProblems();
-        UpdateTooltip(event->pos(), hoveredProblems.empty() ? &hoveredProblems : nullptr, nullptr, nullptr, nullptr);
-        
-        // If hovering over a word and code info has not been requested for that
-        // word yet, request code info for it.
-        if (isCFile &&
-            !tooltipCodeRect.contains(event->pos()) &&
-            !codeInfoRequestRect.contains(event->pos())) {
-          constexpr int kHoverDelayMilliseconds = 120;
-          mouseHoverTimer.start(kHoverDelayMilliseconds);
-          mouseHoverPosGlobal = event->globalPos();
-          mouseHoverPosLocal = event->pos();
-        }
-      }
-    }
+  // Manually buffer the event. This is to improve performance, since we then
+  // only react to the last event that is in the queue. By default, Qt would do this
+  // itself, however, we explicitly disable it by disabling the Qt::AA_CompressHighFrequencyEvents
+  // attribute, which was necessary to fix wheel events getting buffered over a far too long
+  // time window in cases where the event loop was somewhat busy.
+  if (!haveMouseMoveEvent) {
+    // Queue handling the event at the back of the event loop queue.
+    QMetaObject::invokeMethod(this, &DocumentWidget::HandleMouseMoveEvent, Qt::QueuedConnection);
+    haveMouseMoveEvent = true;
   }
-  
-  // Handle selection by dragging
-  if (event->buttons() & Qt::LeftButton) {
-    CloseTooltip();
-    
-    if (selectionDoubleClickOffset == -1) {
-      // No double click has been done, perform normal selection
-      SetCursor(event->x(), event->y(), true);
-    } else {
-      // A double click has been done, perform word-wise selection
-      DocumentRange initialWordRange = GetWordForCharacter(selectionDoubleClickOffset);
-      
-      int line, character;
-      bool wasClamped;
-      GetCharacterAt(event->x(), event->y(), true, &line, &character, &wasClamped);
-      int offset = layoutLines[line].start.offset + character;
-      QString lineText = document->TextForRange(layoutLines[line]);
-      if (wasClamped || character >= lineText.size()) {
-        DocumentLocation otherLocation = DocumentLocation(offset);
-        initialWordRange.Add(otherLocation);
-        SetSelection(initialWordRange);
-      } else {
-        DocumentRange otherWordRange = GetWordForCharacter(offset);
-        initialWordRange.Add(otherWordRange);
-        SetSelection(initialWordRange);
-      }
-      
-      StartMovingCursor();
-      if (offset < selectionDoubleClickOffset) {
-        // Set the cursor to the start of the selection and preSelectionCursor to the end.
-        preSelectionCursor = selection.end;
-        SetCursorTo(selection.start);
-      } else {
-        // Set the cursor to the end of the selection and preSelectionCursor to the start.
-        preSelectionCursor = selection.start;
-        SetCursorTo(selection.end);
-      }
-      EndMovingCursor(false, true);
-    }
-  }
+  lastMouseMoveEventPos = event->pos();
+  lastMouseMoveEventGlobalPos = event->globalPos();
+  lastMouseMoveEventButtons = event->buttons();
 }
 
 void DocumentWidget::mouseDoubleClickEvent(QMouseEvent* event) {

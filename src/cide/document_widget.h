@@ -145,6 +145,8 @@ class DocumentWidget : public QWidget {
   inline MainWindow* GetMainWindow() const { return mainWindow; }
   
  public slots:
+  void HandleMouseMoveEvent();
+  
   void ShowRightClickMenu(const QString& clickedCursorUSR, const QString& clickedCursorSpelling, bool cursorHasLocalDefinition, const QString& clickedTokenSpelling, const DocumentRange& clickedTokenRange);
   void RenameClickedItem();
   void RenameItemAtCursor();
@@ -385,6 +387,12 @@ class DocumentWidget : public QWidget {
   /// The current parameter within the widget at the time of invocation (i.e.,
   /// matching @a argumentHintInvocationLocation).
   int argumentInvocationCurrentParameter;
+  
+  // Mouse move event buffering.
+  bool haveMouseMoveEvent = false;
+  QPoint lastMouseMoveEventPos;
+  QPoint lastMouseMoveEventGlobalPos;
+  Qt::MouseButtons lastMouseMoveEventButtons;
   
   // Settings. TODO: Make configurable.
   bool intelligentHomeAndEnd = true;

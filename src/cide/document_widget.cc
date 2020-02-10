@@ -732,6 +732,9 @@ void DocumentWidget::HandleMouseMoveEvent() {
       int offset = layoutLines[line].start.offset + character;
       QString lineText = document->TextForRange(layoutLines[line]);
       if (wasClamped || character >= lineText.size()) {
+        // If the character got clamped to the last character in the line, move it just beyond the last character
+        // (this is relevant for non-empty lines only).
+        offset += lineText.size() - character;
         DocumentLocation otherLocation = DocumentLocation(offset);
         initialWordRange.Add(otherLocation);
         SetSelection(initialWordRange);

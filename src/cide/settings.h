@@ -165,6 +165,11 @@ class Settings : public QObject {
     IncludePath,
     NamespaceDefinition,
     NamespaceUse,
+    ProjectTreeViewDefault,
+    ProjectTreeViewCurrentItem,
+    ProjectTreeViewOpenedItem,
+    ProjectTreeViewModifiedItem,
+    ProjectTreeViewUntrackedItem,
     NumTextStyles
   };
   

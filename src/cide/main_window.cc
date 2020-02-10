@@ -1801,6 +1801,7 @@ void MainWindow::ShowProgramSettings() {
   Settings::Instance().ShowSettingsWindow(this);
   
   UpdateSearchClickActionLabels();
+  projectTreeView.UpdateHighlighting();
 }
 
 void MainWindow::ShowAboutDialog() {

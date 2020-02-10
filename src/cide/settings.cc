@@ -367,6 +367,11 @@ Settings::Settings() {
   AddConfigurableTextStyle(TextStyle::IncludePath, tr("Include path"), "include_path", true, qRgb(255, 85, 0), false, false, qRgb(255, 255, 255));
   AddConfigurableTextStyle(TextStyle::NamespaceDefinition, tr("Namespace definition"), "namespace_definition", true, qRgb(127, 127, 127), true, false, qRgb(255, 255, 255));
   AddConfigurableTextStyle(TextStyle::NamespaceUse, tr("Namespace use"), "namespace_use", true, qRgb(127, 127, 127), false, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::ProjectTreeViewDefault, tr("Project tree view: Default style"), "project_tree_view_default", true, qRgb(0, 0, 0), false, true, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::ProjectTreeViewCurrentItem, tr("Project tree view: Current item"), "project_tree_view_current_item", false, qRgb(0, 0, 0), false, true, qRgb(220, 220, 255));
+  AddConfigurableTextStyle(TextStyle::ProjectTreeViewOpenedItem, tr("Project tree view: Opened item"), "project_tree_view_opened_item", false, qRgb(0, 0, 0), false, true, qRgb(237, 233, 215));
+  AddConfigurableTextStyle(TextStyle::ProjectTreeViewModifiedItem, tr("Project tree view: Modified item"), "project_tree_view_modified_item", true, qRgb(255, 100, 0), false, false, qRgb(255, 255, 255));
+  AddConfigurableTextStyle(TextStyle::ProjectTreeViewUntrackedItem, tr("Project tree view: Untracked item"), "project_tree_view_untracked_item", true, qRgb(100, 100, 255), false, false, qRgb(255, 255, 255));
 }
 
 void Settings::ShowSettingsWindow(QWidget* parent) {

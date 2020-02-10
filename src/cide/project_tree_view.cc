@@ -719,32 +719,60 @@ std::shared_ptr<Project> ProjectTreeView::GetProjectForItem(QTreeWidgetItem* ite
 }
 
 void ProjectTreeView::ApplyItemStyles(QTreeWidgetItem* item, const QString& canonicalPath) {
-  // Set background color
-  item->setBackgroundColor(0, qRgb(255, 255, 255));
+  // Check open / current state
+  bool isOpened = false;
+  bool isCurrent = false;
   if (mainWindow->IsFileOpen(canonicalPath)) {
     Document* currentDocument = mainWindow->GetCurrentDocument().get();
     if (currentDocument && currentDocument->path() == canonicalPath) {
-      item->setBackgroundColor(0, qRgb(220, 220, 255));
+      isCurrent = true;
     } else {
-      item->setBackgroundColor(0, qRgb(237, 233, 215));
+      isOpened = true;
     }
   }
   
-  // Set text color
+  // Check git state
+  bool isModified = false;
+  bool isUntracked = false;
   ProjectGitStatus::FileStatus fileStatus = GetFileStatusFor(item);
   switch (fileStatus) {
   case ProjectGitStatus::FileStatus::Modified:
-    item->setTextColor(0, qRgb(255, 100, 0));
+    isModified = true;
     break;
   case ProjectGitStatus::FileStatus::Untracked:
-    item->setTextColor(0, qRgb(100, 100, 255));
+    isUntracked = true;
     break;
   case ProjectGitStatus::FileStatus::NotModified:
-    item->setTextColor(0, qRgb(0, 0, 0));
     break;
   case ProjectGitStatus::FileStatus::Invalid:
-    item->setTextColor(0, qRgb(0, 0, 0));
     break;
+  }
+  
+  // Apply styles.
+  auto applyStyle = [&](const Settings::ConfigurableTextStyle& style, bool force = false) {
+    if (style.affectsText || force) {
+      item->setTextColor(0, style.textColor);
+      QFont font = item->font(0);
+      font.setBold(style.bold);
+      item->setFont(0, font);
+    }
+    if (style.affectsBackground || force) {
+      item->setBackgroundColor(0, style.backgroundColor);
+    }
+  };
+  
+  applyStyle(Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ProjectTreeViewDefault), true);
+  if (isUntracked) {
+    applyStyle(Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ProjectTreeViewUntrackedItem));
+  }
+  if (isModified) {
+    applyStyle(Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ProjectTreeViewModifiedItem));
+  }
+  if (isOpened) {
+    applyStyle(Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ProjectTreeViewOpenedItem));
+  }
+  if (isCurrent) {
+    applyStyle(Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ProjectTreeViewCurrentItem));
   }
 }
 

@@ -201,7 +201,7 @@ void ProjectTreeView::UpdateHighlighting() {
             }
           }
           
-          if (numModifications == 0 && numUntracked) {
+          if (numModifications == 0 && numUntracked == 0) {
             child->setText(0, tr("%1 (branch: %2, clean)").arg(QDir(projectPath).dirName()).arg(status->branchName));
           } else {
             child->setText(0, tr("%1 (branch: %2, %3 %4, %5 untracked)")

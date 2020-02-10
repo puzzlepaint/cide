@@ -183,6 +183,8 @@ class MainWindow : public QMainWindow {
   /// Called when any project has been opened or closed.
   void OpenProjectsChangedSlot();
   
+  void UpdateWindowTitle();
+  
  protected:
   void moveEvent(QMoveEvent* event) override;
   void closeEvent(QCloseEvent* event) override;

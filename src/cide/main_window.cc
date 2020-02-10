@@ -1709,8 +1709,9 @@ void MainWindow::UpdateSearchClickActionLabels() {
 }
 
 void MainWindow::CurrentTabChanged(int /*index*/) {
-  TabData* tabData = GetCurrentTabData();
+  UpdateWindowTitle();
   
+  TabData* tabData = GetCurrentTabData();
   if (tabData) {
     documentLayout->setCurrentWidget(tabData->container);
     
@@ -1719,10 +1720,6 @@ void MainWindow::CurrentTabChanged(int /*index*/) {
     // away from other widgets (e.g., the find bar, or the stop button for
     // building), it went to the search bar instead of the editor.
     setTabOrder(tabData->widget, searchBar);
-    
-    setWindowTitle(QStringLiteral("CIDE - %1").arg(tabData->document->path()));
-  } else {
-    setWindowTitle(QStringLiteral("CIDE"));
   }
   
   saveAction->setEnabled(tabData != nullptr);
@@ -1932,6 +1929,24 @@ void MainWindow::OpenProjectsChangedSlot() {
   closeProjectAction->setEnabled(isAnyProjectOpen);
   
   UpdateBuildTargetCombo();
+  
+  UpdateWindowTitle();
+}
+
+void MainWindow::UpdateWindowTitle() {
+  QString projectOrApplicationName;
+  if (projects.empty()) {
+    projectOrApplicationName = tr("CIDE");
+  } else {
+    projectOrApplicationName = projects.front()->GetName();
+  }
+  
+  TabData* tabData = GetCurrentTabData();
+  if (tabData) {
+    setWindowTitle(QStringLiteral("%1 - %2").arg(projectOrApplicationName).arg(tabData->document->path()));
+  } else {
+    setWindowTitle(projectOrApplicationName);
+  }
 }
 
 void MainWindow::moveEvent(QMoveEvent* /*event*/) {

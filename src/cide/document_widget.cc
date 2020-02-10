@@ -3371,7 +3371,11 @@ void DocumentWidget::wheelEvent(QWheelEvent* event) {
     SetXScroll(newXScroll);
   } else if (newYScroll != yScroll) {
     SetYScroll(newYScroll);
+  } else {
+    return;
   }
+  
+  CloseTooltip();
 }
 
 void DocumentWidget::moveEvent(QMoveEvent* /*event*/) {

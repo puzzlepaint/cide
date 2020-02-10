@@ -1123,8 +1123,14 @@ void DocumentWidget::RequestPhraseHighlight(const QString& phrase) {
     findStart = result;
   }
   
-  // Add highlight ranges
+  // Add highlight ranges.
+  // We should always find at least one occurrence, which is the actual selection.
+  // Highlighting this will not be visible because the selection is drawn on top.
+  // So, we only add highlights if we have at least two occurrences.
   if (occurrences.empty()) {
+    qDebug() << "Warning: RequestPhraseHighlight() found no occurrence, this is not supposed to happen since the selected occurrence should always be found.";
+    return;
+  } else if (occurrences.size() <= 1) {
     return;
   } else {
     const auto& copyHighlightStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::CopyHighlight);

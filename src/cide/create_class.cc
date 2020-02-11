@@ -112,9 +112,10 @@ CreateClassDialog::CreateClassDialog(const QDir& parentFolder, const std::shared
 
 void CreateClassDialog::accept() {
   QString className = nameEdit->text();
+  QString headerPath = headerPathEdit->text();
+  QString headerFilename = QFileInfo(headerPath).fileName();
   
   // Check for whether the files exist already and ask about overwriting in this case.
-  QString headerPath = headerPathEdit->text();
   if (QFileInfo(headerPath).exists()) {
     if (QMessageBox::question(this, tr("Overwrite existing file?"), tr("The header file %1 exists already. Overwrite it?").arg(headerPath)) == QMessageBox::No) {
       return;
@@ -128,19 +129,6 @@ void CreateClassDialog::accept() {
       }
     }
   }
-  
-  // Create the header file
-  QString headerFilename = QFileInfo(headerPath).fileName();
-  QFile header(headerPath);
-  if (!header.open(QIODevice::WriteOnly | QIODevice::Text)) {
-    QMessageBox::warning(this, tr("Error"), tr("Could not create header file: %1.").arg(headerPath));
-    return;
-  }
-  QString headerText = project->GetFileTemplate(static_cast<int>(Project::FileTemplate::HeaderFile));
-  ApplyFileTemplateReplacements(&headerText, className, headerFilename);
-  header.write(headerText.toUtf8());
-  header.close();
-  mainWindow->Open(headerPath);
   
   // Create the source file
   if (!headerOnlyCheck->isChecked()) {
@@ -157,6 +145,18 @@ void CreateClassDialog::accept() {
     source.close();
     mainWindow->Open(sourcePath);
   }
+  
+  // Create the header file
+  QFile header(headerPath);
+  if (!header.open(QIODevice::WriteOnly | QIODevice::Text)) {
+    QMessageBox::warning(this, tr("Error"), tr("Could not create header file: %1.").arg(headerPath));
+    return;
+  }
+  QString headerText = project->GetFileTemplate(static_cast<int>(Project::FileTemplate::HeaderFile));
+  ApplyFileTemplateReplacements(&headerText, className, headerFilename);
+  header.write(headerText.toUtf8());
+  header.close();
+  mainWindow->Open(headerPath);
   
   // Update the CMake file if enabled
   // NOTE: Do not call UpdateCMakePreview() here, as it would override changes made by the user

@@ -3383,6 +3383,8 @@ void DocumentWidget::moveEvent(QMoveEvent* /*event*/) {
 }
 
 void DocumentWidget::focusOutEvent(QFocusEvent* /*event*/) {
+  CloseAllPopups();
+  
   // Hide the cursor
   update(GetCursorRect());
 }

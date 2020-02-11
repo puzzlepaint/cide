@@ -309,7 +309,8 @@ void SearchListWidget::keyPressEvent(QKeyEvent* event) {
     
     event->accept();
     return;
-  } else if (event->key() == Qt::Key_Return) {
+  } else if (event->key() == Qt::Key_Return ||
+             event->key() == Qt::Key_Tab) {
     Accept();
     event->accept();
     return;

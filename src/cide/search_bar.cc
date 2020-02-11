@@ -133,6 +133,22 @@ void SearchBar::paintEvent(QPaintEvent *event) {
   }
 }
 
+bool SearchBar::event(QEvent* event) {
+  if (event->type() == QEvent::KeyPress) {
+    QKeyEvent* keyEvent = dynamic_cast<QKeyEvent*>(event);
+    if (keyEvent) {
+      if (keyEvent->key() == Qt::Key_Tab) {
+        // Handle Tab key press.
+        QApplication::sendEvent(mListWidget, event);
+        if (event->isAccepted()) {
+          return true;
+        }
+      }
+    }
+  }
+  return QWidget::event(event);
+}
+
 void SearchBar::keyPressEvent(QKeyEvent* event) {
   if (event->key() == Qt::Key_Escape) {
     mListWidget->hide();

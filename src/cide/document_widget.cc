@@ -447,18 +447,18 @@ DocumentRange DocumentWidget::GetWordForCharacter(int characterOffset) {
   return document->RangeForWordAt(characterOffset, &GetCharType, static_cast<int>(CharacterType::Symbol));
 }
 
-void DocumentWidget::SetSelection(const DocumentRange& range) {
+void DocumentWidget::SetSelection(const DocumentRange& range, bool placeCursorAtEnd) {
   // NOTE: EndMovingCursor() may also modify the selection (without calling this
   //       function).
   
   if (!range.IsInvalid()) {
     StartMovingCursor();
-    SetCursorTo(range.end);
+    SetCursorTo(placeCursorAtEnd ? range.end : range.start);
     EndMovingCursor(false);
   }
   
   selection = range;
-  preSelectionCursor = range.start;
+  preSelectionCursor = placeCursorAtEnd ? range.start : range.end;
   
   // Check whether a whole word or phrase is selected. If yes, highlight all
   // occurrences of it.
@@ -2309,6 +2309,8 @@ void DocumentWidget::TabPressed(bool shiftHeld) {
       }
     }
   } else {
+    bool cursorWasAtEnd = MapCursorToDocument() == selection.end;
+    
     // (Un)indent all lines that are covered by the selection.
     std::vector<DocumentLocation> lineStarts;
     
@@ -2374,7 +2376,7 @@ void DocumentWidget::TabPressed(bool shiftHeld) {
     document->EndUndoStep();
     
     // Select the complete range of all involved lines afterwards.
-    SetSelection(DocumentRange(firstLineStart, lastLineEnd));
+    SetSelection(DocumentRange(firstLineStart, lastLineEnd), cursorWasAtEnd);
   }
   
   update(rect());  // TODO: limit update

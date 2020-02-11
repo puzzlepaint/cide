@@ -92,8 +92,9 @@ class DocumentWidget : public QWidget {
   DocumentRange GetWordForCharacter(int characterOffset);
   
   /// Sets the current selection to the given range. The cursor will be placed
-  /// at the end of the range.
-  void SetSelection(const DocumentRange& range);
+  /// at the end of the range by default (if placeCursorAtEnd is true). Otherwise,
+  /// the cursor will be placed at the start of the range.
+  void SetSelection(const DocumentRange& range, bool placeCursorAtEnd = true);
   
   /// Returns the currently selected range, or an empty range at the cursor
   /// location if no text is selected. This is not const because it may trigger

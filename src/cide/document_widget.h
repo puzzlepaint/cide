@@ -55,7 +55,7 @@ class DocumentWidget : public QWidget {
   /// Inserts the given text into the document (as if typed). This will replace
   /// the current selection (if any) with the text, respectively insert it at
   /// the current cursor position.
-  void InsertText(const QString& text);
+  void InsertText(const QString& text, bool forceNewUndoStep = false);
   
   /// Returns the selected text as a QString (i.e., as a single string including
   /// potential newlines).

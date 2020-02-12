@@ -492,7 +492,7 @@ bool Document::SaveBackup(const QString& backupPath, const QString& originalPath
   return true;
 }
 
-void Document::Replace(const DocumentRange& range, const QString& newText, bool createUndoStep, Replacement* undoReplacement) {
+void Document::Replace(const DocumentRange& range, const QString& newText, bool createUndoStep, Replacement* undoReplacement, bool forceNewUndoStep) {
   constexpr bool kDebug = false;
   
   // Debug: Pretty-print the blocks and the replacement
@@ -768,7 +768,8 @@ void Document::Replace(const DocumentRange& range, const QString& newText, bool 
     //         back-link. This should be avoided with special case handling which
     //         updates the other link(s) as well.
     bool mergedUndoStep = false;
-    if (!creatingCombinedUndoStep &&
+    if (!forceNewUndoStep &&
+        !creatingCombinedUndoStep &&
         versionGraphRoot->links.size() == 1 &&
         versionGraphRoot->links[0].replacements.size() == 1) {
       constexpr int kMaxMillisecondsForUndoMerging = 500;  // TODO: Make configurable

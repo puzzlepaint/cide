@@ -373,7 +373,7 @@ class Document : public QObject {
   
   /// The basic editing operation that all edits are implemented with: text replacement.
   /// This replaces the given @p range in the document with @p newText.
-  void Replace(const DocumentRange& range, const QString& newText, bool createUndoStep = true, Replacement* undoReplacement = nullptr);
+  void Replace(const DocumentRange& range, const QString& newText, bool createUndoStep = true, Replacement* undoReplacement = nullptr, bool forceNewUndoStep = false);
   
   /// This may be called before a series of calls to Replace() to mark the start
   /// of a single undo step that encompasses multiple replacements. For example,

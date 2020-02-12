@@ -335,7 +335,7 @@ void DocumentWidget::ReplaceAll(const QString& find, const QString& replacement,
   }
 }
 
-void DocumentWidget::InsertText(const QString& text) {
+void DocumentWidget::InsertText(const QString& text, bool forceNewUndoStep) {
   QRect updateRect;
   StartMovingCursor();
   
@@ -350,7 +350,7 @@ void DocumentWidget::InsertText(const QString& text) {
     replacementRange = DocumentRange(cursorOffset, cursorOffset);
   }
   
-  document->Replace(replacementRange, text);
+  document->Replace(replacementRange, text, true, nullptr, forceNewUndoStep);
   SetCursorTo(replacementRange.start + text.size());
   
   if (true) {  // TODO: Only if the number of lines changed
@@ -856,7 +856,8 @@ void DocumentWidget::Copy() {
 
 void DocumentWidget::Paste() {
   QClipboard* clipboard = QGuiApplication::clipboard();
-  InsertText(clipboard->text(QClipboard::Clipboard));
+  // Force a new undo step for inserted text.
+  InsertText(clipboard->text(QClipboard::Clipboard), true);
 }
 
 void DocumentWidget::ToggleBookmark() {

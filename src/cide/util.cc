@@ -101,8 +101,6 @@ QRgb ParseHexColor(const QString& text) {
 }
 
 QString ToHexColorString(const QRgb& color) {
-  QString::number(qRed(color), 16);
-  
   return QStringLiteral("%1%2%3")
       .arg(static_cast<uint>(qRed(color)), 2, 16, QLatin1Char('0'))
       .arg(static_cast<uint>(qGreen(color)), 2, 16, QLatin1Char('0'))

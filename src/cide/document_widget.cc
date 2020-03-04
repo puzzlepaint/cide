@@ -228,25 +228,27 @@ void DocumentWidget::ScrollTo(const DocumentLocation& location) {
   SetYScroll(yScroll + GetLineRect(line).top());
 }
 
-void DocumentWidget::SetCursor(int x, int y, bool addToSelection) {
+void DocumentWidget::SetCursor(int x, int y, bool addToSelection, bool ensureCursorIsVisible) {
   StartMovingCursor();
   GetDocumentLocationAt(x, y, nullptr, &cursorLine, &cursorCol);
-  EndMovingCursor(addToSelection);
+  EndMovingCursor(addToSelection, false, ensureCursorIsVisible);
 }
 
-void DocumentWidget::SetCursor(const DocumentLocation& location, bool addToSelection) {
+void DocumentWidget::SetCursor(const DocumentLocation& location, bool addToSelection, bool ensureCursorIsVisible) {
   StartMovingCursor();
   SetCursorTo(location);
-  EndMovingCursor(addToSelection);
+  EndMovingCursor(addToSelection, false, ensureCursorIsVisible);
 }
 
 void DocumentWidget::Replace(const DocumentRange& range, const QString& newText, bool createUndoStep, Replacement* undoReplacement) {
   DocumentRange selectionRange;
+  bool placeCursorAtEnd = true;
   if (selection.IsEmpty()) {
     selectionRange.start = MapCursorToDocument();
     selectionRange.end = selectionRange.start;
   } else {
     selectionRange = selection;
+    placeCursorAtEnd = MapCursorToDocument() == selectionRange.end;
   }
   
   document->Replace(range, newText, createUndoStep, undoReplacement);
@@ -264,9 +266,9 @@ void DocumentWidget::Replace(const DocumentRange& range, const QString& newText,
   adaptDocumentLocation(&selectionRange.end);
   
   if (selection.IsEmpty()) {
-    SetCursor(selectionRange.start, false);
+    SetCursor(selectionRange.start, false, false);
   } else {
-    SetSelection(selectionRange);
+    SetSelection(selectionRange, placeCursorAtEnd, false);
   }
 }
 
@@ -447,14 +449,14 @@ DocumentRange DocumentWidget::GetWordForCharacter(int characterOffset) {
   return document->RangeForWordAt(characterOffset, &GetCharType, static_cast<int>(CharacterType::Symbol));
 }
 
-void DocumentWidget::SetSelection(const DocumentRange& range, bool placeCursorAtEnd) {
+void DocumentWidget::SetSelection(const DocumentRange& range, bool placeCursorAtEnd, bool ensureCursorIsVisible) {
   // NOTE: EndMovingCursor() may also modify the selection (without calling this
   //       function).
   
   if (!range.IsInvalid()) {
     StartMovingCursor();
     SetCursorTo(placeCursorAtEnd ? range.end : range.start);
-    EndMovingCursor(false);
+    EndMovingCursor(false, false, ensureCursorIsVisible);
   }
   
   selection = range;
@@ -1688,7 +1690,7 @@ void DocumentWidget::StartMovingCursor() {
   movingCursorOldRect = GetCursorRect();
 }
 
-void DocumentWidget::EndMovingCursor(bool addToSelection, bool preserveSelection) {
+void DocumentWidget::EndMovingCursor(bool addToSelection, bool preserveSelection, bool ensureCursorIsVisible) {
   if (!movingCursor) {
     qFatal("Missing StartMovingCursor!");
   }
@@ -1754,7 +1756,9 @@ void DocumentWidget::EndMovingCursor(bool addToSelection, bool preserveSelection
   }
   
   ResetCursorBlinkPhase();
-  EnsureCursorIsInView();
+  if (ensureCursorIsVisible) {
+    EnsureCursorIsInView();
+  }
   emit CursorMoved(cursorLine, std::min(document->TextForRange(layoutLines[cursorLine]).size(), cursorCol));
 }
 

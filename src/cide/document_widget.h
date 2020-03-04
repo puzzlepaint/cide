@@ -42,8 +42,8 @@ class DocumentWidget : public QWidget {
   
   /// Sets the cursor to a certain position in the widget (as if clicking this
   /// position).
-  void SetCursor(int x, int y, bool addToSelection);
-  void SetCursor(const DocumentLocation& location, bool addToSelection);
+  void SetCursor(int x, int y, bool addToSelection, bool ensureCursorIsVisible = true);
+  void SetCursor(const DocumentLocation& location, bool addToSelection, bool ensureCursorIsVisible = true);
   
   /// Wraps Document::Replace(), while additionally adapting the cursor position
   /// to the inserted text.
@@ -94,7 +94,7 @@ class DocumentWidget : public QWidget {
   /// Sets the current selection to the given range. The cursor will be placed
   /// at the end of the range by default (if placeCursorAtEnd is true). Otherwise,
   /// the cursor will be placed at the start of the range.
-  void SetSelection(const DocumentRange& range, bool placeCursorAtEnd = true);
+  void SetSelection(const DocumentRange& range, bool placeCursorAtEnd = true, bool ensureCursorIsVisible = true);
   
   /// Returns the currently selected range, or an empty range at the cursor
   /// location if no text is selected. This is not const because it may trigger
@@ -260,7 +260,7 @@ class DocumentWidget : public QWidget {
   void SetCursorTo(const DocumentLocation& location);
   
   void StartMovingCursor();
-  void EndMovingCursor(bool addToSelection, bool preserveSelection = false);
+  void EndMovingCursor(bool addToSelection, bool preserveSelection = false, bool ensureCursorIsVisible = true);
   
   void UpdateScrollbar();
   

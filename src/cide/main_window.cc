@@ -1456,13 +1456,18 @@ void MainWindow::ParseBuildOutputForError(const QString& line) {
     int prefixLen = 9;
     int errorOrWarningStringPos = line.indexOf(QStringLiteral(": error: "));
     if (errorOrWarningStringPos <= 0) {
-      isError = false;
-      prefixLen = 11;
-      errorOrWarningStringPos = line.indexOf(QStringLiteral(": warning: "));
+      isError = true;
+      prefixLen = 15;
+      errorOrWarningStringPos = line.indexOf(QStringLiteral(": fatal error: "));
       if (errorOrWarningStringPos <= 0) {
-        isNote = true;
-        prefixLen = 8;
-        errorOrWarningStringPos = line.indexOf(QStringLiteral(": note: "));
+        isError = false;
+        prefixLen = 11;
+        errorOrWarningStringPos = line.indexOf(QStringLiteral(": warning: "));
+        if (errorOrWarningStringPos <= 0) {
+          isNote = true;
+          prefixLen = 8;
+          errorOrWarningStringPos = line.indexOf(QStringLiteral(": note: "));
+        }
       }
     }
     if (errorOrWarningStringPos >= 5) {

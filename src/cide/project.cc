@@ -6,6 +6,7 @@
 
 #include <fstream>
 
+#include <QMessageBox>
 #include <QProcess>
 #include <QProgressDialog>
 #include <QtDebug>
@@ -343,11 +344,6 @@ bool Project::Configure(QString* errorReason, QWidget* parent) {
   // This uses the CMake file API. See:
   // https://cmake.org/cmake/help/latest/manual/cmake-file-api.7.html
   
-  QProgressDialog progress(tr("Configuring the project ..."), tr("Abort"), 0, 0, parent);
-  progress.setMinimumDuration(200);
-  progress.setValue(0);
-  progress.setWindowModality(Qt::WindowModal);
-  
   // Clear watcher.
   if (!cmakeFileWatcher.files().isEmpty()) {
     cmakeFileWatcher.removePaths(cmakeFileWatcher.files());
@@ -368,6 +364,46 @@ bool Project::Configure(QString* errorReason, QWidget* parent) {
   // was used to generate it, such that we can use this one later.
   QString cmakeExecutable = "cmake";  // default if not found in CMakeCache.txt
   ExtractCMakeCommandFromCache(projectCMakeDir.filePath("CMakeCache.txt"), &cmakeExecutable);
+  
+  // Ensure that the CMake binary that we got is at least version 3.14.
+  // If we got an older version, running the configuration will potentially work just fine,
+  // but the API responses will (if they already exist) silently not get updated. Thus,
+  // we explicitly warn here in this case to prevent confusion.
+  std::shared_ptr<QProcess> cmakeVersionTestProcess(new QProcess());
+  QStringList versionTestArguments;
+  versionTestArguments << "--version";
+  cmakeVersionTestProcess->start(cmakeExecutable, versionTestArguments);
+  cmakeVersionTestProcess->waitForFinished(10000);
+  
+  // Example first line output from CMake: cmake version 2.8.12.2
+  QString firstLine = cmakeVersionTestProcess->readLine();
+  QStringList versionWords = firstLine.trimmed().split(' ', QString::SkipEmptyParts);
+  if (versionWords.size() >= 3 &&
+      versionWords[0] == "cmake" &&
+      versionWords[1] == "version") {
+    QString cmakeVersionString = versionWords[2];
+    QStringList cmakeVersionNumberParts = cmakeVersionString.split('.');
+    bool versionIsAtLeast3_14 = false;
+    if (cmakeVersionNumberParts.size() == 1) {
+      versionIsAtLeast3_14 = cmakeVersionNumberParts[0].toInt() >= 4;
+    } else if (cmakeVersionNumberParts.size() >= 2) {
+      versionIsAtLeast3_14 =
+          cmakeVersionNumberParts[0].toInt() >= 4 ||
+          (cmakeVersionNumberParts[0].toInt() == 3 && cmakeVersionNumberParts[1].toInt() >= 14);
+    }
+    if (!versionIsAtLeast3_14) {
+      QMessageBox::warning(parent, tr("CMake version too old"), tr("The version of the CMake binary used for configuring (%1) is too old. At least version 3.14 is required for CIDE, since it uses the CMake file API.").arg(cmakeVersionString));
+    }
+  } else {
+    QMessageBox::warning(parent, tr("Cannot determine CMake version"), tr("Failed to parse the CMake version, thus cannot determine whether it is supported by CIDE. Continuing, but be aware that building might not work. The first line in the output of cmake --version is: %1").arg(firstLine));
+  }
+  
+  // Start the progress dialog. It seems that this interferes with the QMessageBoxes that might be shown
+  // above, so only do it after this point.
+  QProgressDialog progress(tr("Configuring the project ..."), tr("Abort"), 0, 0, parent);
+  progress.setMinimumDuration(200);
+  progress.setValue(0);
+  progress.setWindowModality(Qt::WindowModal);
   
   // Run CMake
   std::shared_ptr<QProcess> cmakeProcess(new QProcess());

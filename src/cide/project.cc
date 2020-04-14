@@ -55,7 +55,18 @@ std::vector<QByteArray> CompileSettings::BuildCommandLineArgs(bool enableSpellCh
   }
   
   for (int i = 0; i < compileCommandFragments.size(); ++ i) {
-    commandLineArgs.emplace_back(compileCommandFragments[i].toLocal8Bit());
+    // If we detect MSVC-style flags, convert them to GCC-style to make libclang understand them.
+    // TODO: Is this possible in a more general way?
+    const auto& fragment = compileCommandFragments[i];
+    if (fragment == QStringLiteral("-std:c++11")) {
+      commandLineArgs.emplace_back("-std=c++11");
+    } else if (fragment == QStringLiteral("-std:c++14")) {
+      commandLineArgs.emplace_back("-std=c++14");
+    } else if (fragment == QStringLiteral("-std:c++17")) {
+      commandLineArgs.emplace_back("-std=c++17");
+    } else {
+      commandLineArgs.emplace_back(compileCommandFragments[i].toLocal8Bit());
+    }
   }
   
   // Try to detect cuda files. The CUDA option ("-x cu" if invoking clang

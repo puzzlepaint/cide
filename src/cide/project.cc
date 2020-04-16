@@ -261,6 +261,9 @@ bool Project::Load(const QString& path) {
     }
   }
   
+  if (fileNode["headerFileExtension"].IsDefined()) {
+    headerFileExtension = QString::fromStdString(fileNode["headerFileExtension"].as<std::string>());
+  }
   if (fileNode["sourceFileExtension"].IsDefined()) {
     sourceFileExtension = QString::fromStdString(fileNode["sourceFileExtension"].as<std::string>());
   }
@@ -337,6 +340,10 @@ bool Project::Save(const QString& path) {
     }
   }
   
+  if (!headerFileExtension.isEmpty()) {
+    out << YAML::Key << "headerFileExtension";
+    out << YAML::Value << headerFileExtension.toStdString();
+  }
   if (!sourceFileExtension.isEmpty()) {
     out << YAML::Key << "sourceFileExtension";
     out << YAML::Value << sourceFileExtension.toStdString();

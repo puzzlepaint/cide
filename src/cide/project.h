@@ -223,6 +223,9 @@ class Project : public QObject {
   inline FilenameStyle GetFilenameStyle() const { return filenameStyle; }
   inline void SetFilenameStyle(FilenameStyle style) { filenameStyle = style; }
   
+  inline const QString& GetHeaderFileExtension() const { return headerFileExtension; }
+  inline void SetHeaderFileExtension(const QString& extension) { headerFileExtension = extension; }
+  
   inline const QString& GetSourceFileExtension() const { return sourceFileExtension; }
   inline void SetSourceFileExtension(const QString& extension) { sourceFileExtension = extension; }
   
@@ -297,6 +300,7 @@ class Project : public QObject {
   /// If empty, the template is unset and the default should be used instead.
   QString fileTemplates[static_cast<int>(FileTemplate::NumTemplates)];
   FilenameStyle filenameStyle = FilenameStyle::NotConfigured;
+  QString headerFileExtension = QStringLiteral("");
   QString sourceFileExtension = QStringLiteral("");
   
   bool useDefaultCompiler = true;

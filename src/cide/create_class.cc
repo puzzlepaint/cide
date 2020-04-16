@@ -231,6 +231,13 @@ void CreateClassDialog::ClassNameChanged() {
   }
   
   // Update the filename in the UI
+  QString headerFileExtension;
+  if (!project->GetHeaderFileExtension().isEmpty()) {
+    headerFileExtension = project->GetHeaderFileExtension();
+  } else {
+    headerFileExtension = QStringLiteral("h");  // set default value
+  }
+  
   QString sourceFileExtension;
   if (!project->GetSourceFileExtension().isEmpty()) {
     sourceFileExtension = project->GetSourceFileExtension();
@@ -238,7 +245,7 @@ void CreateClassDialog::ClassNameChanged() {
     sourceFileExtension = QStringLiteral("cpp");  // set default value
   }
   
-  headerPathEdit->setText(parentFolder.filePath(filename + ".h"));
+  headerPathEdit->setText(parentFolder.filePath(filename + "." + headerFileExtension));
   sourcePathEdit->setText(parentFolder.filePath(filename + "." + sourceFileExtension));
   
   // Update the CMake preview

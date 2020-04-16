@@ -252,21 +252,26 @@ QWidget* ProjectSettingsDialog::CreateFileTemplatesCategory() {
   filenameStyleLayout->addWidget(filenameStyleLabel);
   filenameStyleLayout->addWidget(filenameStyleCombo);
   
+  QLabel* headerFileExtensionLabel = new QLabel(tr("Header file extension: "));
+  QLineEdit* headerFileExtensionEdit = new QLineEdit(project->GetHeaderFileExtension());
+  
   QLabel* sourceFileExtensionLabel = new QLabel(tr("Source file extension: "));
   QLineEdit* sourceFileExtensionEdit = new QLineEdit(project->GetSourceFileExtension());
   
-  QHBoxLayout* sourceFileExtensionLayout = new QHBoxLayout();
-  sourceFileExtensionLayout->setContentsMargins(0, 0, 0, 0);
-  sourceFileExtensionLayout->setMargin(0);
-  sourceFileExtensionLayout->addWidget(sourceFileExtensionLabel);
-  sourceFileExtensionLayout->addWidget(sourceFileExtensionEdit);
+  QGridLayout* fileExtensionLayout = new QGridLayout();
+  fileExtensionLayout->setContentsMargins(0, 0, 0, 0);
+  fileExtensionLayout->setMargin(0);
+  fileExtensionLayout->addWidget(headerFileExtensionLabel, 0, 0);
+  fileExtensionLayout->addWidget(headerFileExtensionEdit, 0, 1);
+  fileExtensionLayout->addWidget(sourceFileExtensionLabel, 1, 0);
+  fileExtensionLayout->addWidget(sourceFileExtensionEdit, 1, 1);
   
   QVBoxLayout* layout = new QVBoxLayout();
   layout->addWidget(templateList, 1);
   layout->addWidget(templateEdit, 2);
   layout->addSpacing(20);
   layout->addLayout(filenameStyleLayout);
-  layout->addLayout(sourceFileExtensionLayout);
+  layout->addLayout(fileExtensionLayout);
   
   // --- Connections ---
   saveTemplateChanges = true;
@@ -300,6 +305,10 @@ QWidget* ProjectSettingsDialog::CreateFileTemplatesCategory() {
   connect(filenameStyleCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), [&](int currentIndex) {
     Project::FilenameStyle style = static_cast<Project::FilenameStyle>(filenameStyleCombo->itemData(currentIndex, Qt::UserRole).toInt());
     project->SetFilenameStyle(style);
+  });
+  
+  connect(headerFileExtensionEdit, &QLineEdit::textChanged, [&](const QString& text) {
+    project->SetHeaderFileExtension(text);
   });
   
   connect(sourceFileExtensionEdit, &QLineEdit::textChanged, [&](const QString& text) {

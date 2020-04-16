@@ -453,13 +453,12 @@ void DocumentWidget::SetSelection(const DocumentRange& range, bool placeCursorAt
   // NOTE: EndMovingCursor() may also modify the selection (without calling this
   //       function).
   
+  selection = range;
   if (!range.IsInvalid()) {
     StartMovingCursor();
     SetCursorTo(placeCursorAtEnd ? range.end : range.start);
-    EndMovingCursor(false, false, ensureCursorIsVisible);
+    EndMovingCursor(false, true, ensureCursorIsVisible);
   }
-  
-  selection = range;
   preSelectionCursor = placeCursorAtEnd ? range.start : range.end;
   
   // Check whether a whole word or phrase is selected. If yes, highlight all

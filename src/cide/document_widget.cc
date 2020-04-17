@@ -49,22 +49,27 @@ DocumentWidget::DocumentWidget(const std::shared_ptr<Document>& document, Docume
   FontChanged();
   
   QAction* undoAction = new ActionWithConfigurableShortcut(tr("Undo"), undoShortcut, this);
+  undoAction->setShortcutContext(Qt::WidgetShortcut);
   connect(undoAction, &QAction::triggered, this, &DocumentWidget::Undo);
   addAction(undoAction);
   
   QAction* redoAction = new ActionWithConfigurableShortcut(tr("Redo"), redoShortcut, this);
+  redoAction->setShortcutContext(Qt::WidgetShortcut);
   connect(redoAction, &QAction::triggered, this, &DocumentWidget::Redo);
   addAction(redoAction);
   
   QAction* cutAction = new ActionWithConfigurableShortcut(tr("Cut"), cutShortcut, this);
+  cutAction->setShortcutContext(Qt::WidgetShortcut);
   connect(cutAction, &QAction::triggered, this, &DocumentWidget::Cut);
   addAction(cutAction);
   
   QAction* copyAction = new ActionWithConfigurableShortcut(tr("Copy"), copyShortcut, this);
+  copyAction->setShortcutContext(Qt::WidgetShortcut);
   connect(copyAction, &QAction::triggered, this, &DocumentWidget::Copy);
   addAction(copyAction);
   
   QAction* pasteAction = new ActionWithConfigurableShortcut(tr("Paste"), pasteShortcut, this);
+  pasteAction->setShortcutContext(Qt::WidgetShortcut);
   connect(pasteAction, &QAction::triggered, this, &DocumentWidget::Paste);
   addAction(pasteAction);
   

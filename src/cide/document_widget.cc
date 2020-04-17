@@ -3312,7 +3312,24 @@ void DocumentWidget::keyPressEvent(QKeyEvent* event) {
       whitespace += QString(" ").repeated(spacesPerTab);
     }
     
-    // Inser the new line together with its initial whitespace determined above
+    // Delete any whitespace characters to the right of the cursor / selection
+    if (!selection.IsValid()) {
+      selection = DocumentRange(loc, loc);
+    }
+    it = Document::CharacterIterator(document.get(), loc.offset);
+    while (true) {
+      if (!it.IsValid()) {
+        break;
+      }
+      QChar c = it.GetChar();
+      if (c == QChar('\n') || !IsWhitespace(c)) {
+        break;
+      }
+      ++ it;
+      ++ selection.end;
+    }
+    
+    // Insert the new line together with its initial whitespace determined above
     InsertText("\n" + whitespace);
   } else if (!(event->modifiers() & Qt::ControlModifier)) {
     QString text = event->text();

@@ -81,6 +81,7 @@ class Problem {
   inline const std::vector<Item>& items() const { return mItems; }
   
   inline const std::vector<FixIt>& fixits() const { return fixIts; }
+  inline std::vector<FixIt>& fixits() { return fixIts; }
   
  private:
   void AppendItemsToDescription(const std::vector<Item>& items, const QString& forFile, int forLine, QString* text);

@@ -682,6 +682,35 @@ void Document::Replace(const DocumentRange& range, const QString& newText, bool 
   }
   newProblemRanges.swap(mProblemRanges);
   
+  // Adjust the fix-it ranges
+  for (const std::shared_ptr<Problem>& problem : mProblems) {
+    for (int i = 0; i < static_cast<int>(problem->fixits().size()); ++ i) {
+      Problem::FixIt& fixit = problem->fixits()[i];
+      
+      // TODO: This duplicates the logic above
+      if (fixit.range.start >= range.end) {
+        fixit.range = DocumentRange(fixit.range.start + shift, fixit.range.end + shift);
+      } else if (fixit.range.start >= range.start) {
+        if (fixit.range.end <= range.end) {
+          // Delete the fixit
+          problem->fixits().erase(problem->fixits().begin() + i);
+          -- i;
+          continue;
+        } else {
+          fixit.range = DocumentRange(newRangeEnd, fixit.range.end + shift);
+        }
+      } else if (fixit.range.end >= range.start) {
+        if (fixit.range.end > range.end) {
+          fixit.range = DocumentRange(fixit.range.start, fixit.range.end + shift);
+        } else {
+          fixit.range = DocumentRange(fixit.range.start, range.start);
+        }
+      } else {
+        // The problem range lies before the edit range, take it over unmodified.
+      }
+    }
+  }
+  
   // Adjust the context ranges
   // TODO: Would storing this as a vector be better to make modifications faster (no need to build a new set)?
   std::set<Context> newContexts;

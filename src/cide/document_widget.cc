@@ -1788,9 +1788,11 @@ void DocumentWidget::ApplyFixIt(const std::shared_ptr<Problem>& problem, int fix
     // TODO: Try to adapt the fix-it range to the current version of the document
     return;
   }
-  Replace(
-      problem->fixits()[fixitIndex].range,
-      problem->fixits()[fixitIndex].newText);
+  // Copy the fix-it data before applying it, since the resulting change to the
+  // document may modify the fix-it.
+  DocumentRange fixitRange = problem->fixits()[fixitIndex].range;
+  QString fixitNewText = problem->fixits()[fixitIndex].newText;
+  Replace(fixitRange, fixitNewText);
   document->RemoveProblem(problem);
   update(rect());
 }

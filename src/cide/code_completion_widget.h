@@ -138,7 +138,7 @@ class CodeCompletionWidget : public QWidget {
   void ScrollChanged(int value);
   
  private:
-  void AppendCompletionString(const CXCompletionString& completion, QString* text, std::vector<DocumentRange>* placeholders, bool skipPartsInBracket, bool mayAppendSemicolon);
+  void AppendCompletionString(const CXCompletionString& completion, QString* text, std::vector<DocumentRange>* placeholders, bool skipBracketAndFollowing, bool skipAngleBracketAndFollowing, bool mayAppendSemicolon);
   
   void EnsureSelectionIsVisible();
   

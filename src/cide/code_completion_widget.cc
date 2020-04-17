@@ -376,7 +376,7 @@ void CodeCompletionWidget::ScrollChanged(int value) {
   Relayout();
 }
 
-void CodeCompletionWidget::AppendCompletionString(const CXCompletionString& completion, QString* text, std::vector<DocumentRange>* placeholders, bool skipPartsInBracket, bool mayAppendSemicolon) {
+void CodeCompletionWidget::AppendCompletionString(const CXCompletionString& completion, QString* text, std::vector<DocumentRange>* placeholders, bool skipBracketAndFollowing, bool skipAngleBracketAndFollowing, bool mayAppendSemicolon) {
   bool haveResultType = false;
   // bool resultTypeIsVoid = false;
   unsigned numChunks = clang_getNumCompletionChunks(completion);
@@ -386,8 +386,9 @@ void CodeCompletionWidget::AppendCompletionString(const CXCompletionString& comp
     
     if (kind == CXCompletionChunk_Optional) {
       CXCompletionString childString = clang_getCompletionChunkCompletionString(completion, chunkIndex);
-      AppendCompletionString(childString, text, placeholders, skipPartsInBracket, mayAppendSemicolon);
-    } else if (kind == CXCompletionChunk_LeftParen && skipPartsInBracket) {
+      AppendCompletionString(childString, text, placeholders, skipBracketAndFollowing, skipAngleBracketAndFollowing, mayAppendSemicolon);
+    } else if ((kind == CXCompletionChunk_LeftParen && skipBracketAndFollowing) ||
+               (kind == CXCompletionChunk_LeftAngle && skipAngleBracketAndFollowing)) {
       break;
     } else {
       QString chunkText = ClangString(clang_getCompletionChunkText(completion, chunkIndex)).ToQString();
@@ -409,7 +410,7 @@ void CodeCompletionWidget::AppendCompletionString(const CXCompletionString& comp
   }
   
   // TODO: Testing whether it would be good to always append ';', even if the return type is not 'void'.
-  if (mayAppendSemicolon && haveResultType && /*resultTypeIsVoid &&*/ !text->endsWith(';') && !skipPartsInBracket) {
+  if (mayAppendSemicolon && haveResultType && /*resultTypeIsVoid &&*/ !text->endsWith(';') && !skipBracketAndFollowing && !skipAngleBracketAndFollowing) {
     *text += QStringLiteral(";");
   }
 }
@@ -475,7 +476,7 @@ bool CodeCompletionWidget::HasSingleExactMatch() {
     CXCompletionResult& clangResult = mLibclangResults->Results[bestItem.clangCompletionIndex];
     CXCompletionString& completion = clangResult.CompletionString;
     std::vector<DocumentRange> placeholders;
-    AppendCompletionString(completion, &insertionText, &placeholders, false, false);
+    AppendCompletionString(completion, &insertionText, &placeholders, false, false, false);
   }
   return insertionText == filterText;
 }
@@ -552,9 +553,10 @@ void CodeCompletionWidget::Accept(DocumentWidget* widget, const DocumentLocation
     widget->update(widget->rect());  // TODO: Smaller update rect?
   } else {
     // The completion item comes from libclang. Use its semantic string to insert it.
-    // First, check whether there is an opening bracket '(' to the right of the replacement range.
-    // If yes, do not insert '(' and further text from the completion string.
+    // First, check whether there is an opening bracket ('(' or '<') to the right of the replacement range.
+    // If yes, do not insert '(' or '<' and further text from the completion string.
     bool haveOpeningBracketAlready = false;
+    bool haveOpeningAngleBracketAlready = false;
     bool haveNonWhitespaceAfterInsertionPoint = false;
     Document::CharacterIterator charIt(widget->GetDocument().get(), replacementRange.end.offset);
     while (charIt.IsValid()) {
@@ -566,10 +568,15 @@ void CodeCompletionWidget::Accept(DocumentWidget* widget, const DocumentLocation
       } else if (IsWhitespace(c)) {
         continue;
       } else {
-        if (!haveNonWhitespaceAfterInsertionPoint && c == '(') {
-          haveOpeningBracketAlready = true;
+        if (!haveNonWhitespaceAfterInsertionPoint) {
+          if (c == '(') {
+            haveOpeningBracketAlready = true;
+          } else if (c == '<') {
+            haveOpeningAngleBracketAlready = true;
+          }
         }
         haveNonWhitespaceAfterInsertionPoint = true;
+        break;
       }
     }
     
@@ -635,6 +642,7 @@ void CodeCompletionWidget::Accept(DocumentWidget* widget, const DocumentLocation
         &completionString,
         &placeholders,
         haveOpeningBracketAlready,
+        haveOpeningAngleBracketAlready,
         isFunction && !haveNonWhitespaceAfterInsertionPoint && numOpenBracketsBeforeInsertion == numCloseBracketsBeforeInsertion);
     
     // TODO: Mark the placeholders in the document

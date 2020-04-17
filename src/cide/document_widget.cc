@@ -349,6 +349,10 @@ void DocumentWidget::InsertText(const QString& text, bool forceNewUndoStep) {
   // Delete current selection, if any
   DocumentRange replacementRange;
   if (selection.IsValid()) {
+    if (MapCursorToDocument() == selection.end) {
+      UpdateArgumentHintWidget(selection, false);
+    }
+    
     updateRect = GetTextRect(selection);
     replacementRange = selection;
     selection = DocumentRange::Invalid();

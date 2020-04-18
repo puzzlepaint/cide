@@ -720,7 +720,7 @@ void MainWindow::ParseSettingsForCurrentFile() {
     QLabel* languageLabel = new QLabel(tr("Language: <b>%1</b>").arg(CompileSettings::LanguageToString(settings->language)));
     layout->addWidget(languageLabel);
     
-    std::vector<QByteArray> args = settings->BuildCommandLineArgs(true, tab->document->path(), *usedProject);
+    std::vector<QByteArray> args = settings->BuildCommandLineArgs(true, tab->document->path(), usedProject.get());
     
     QLabel* argsLabel = new QLabel(tr("Command-line arguments:"));
     layout->addWidget(argsLabel);

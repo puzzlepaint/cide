@@ -794,7 +794,7 @@ void RenameDialog::ParseFileToGetTU(const QString& path, CXTranslationUnit* clan
     }
     
     // Get command line arguments for parsing
-    commandLineArgs = settings->BuildCommandLineArgs(true, path, *usedProject);
+    commandLineArgs = settings->BuildCommandLineArgs(true, path, usedProject.get());
     commandLineArgPtrs.resize(commandLineArgs.size());
     for (int i = 0; i < commandLineArgs.size(); ++ i) {
       commandLineArgPtrs[i] = commandLineArgs[i].data();

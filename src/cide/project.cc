@@ -21,7 +21,7 @@
 #include "cide/settings.h"
 
 
-std::vector<QByteArray> CompileSettings::BuildCommandLineArgs(bool enableSpellCheck, const QString& filePath, const Project& project) const {
+std::vector<QByteArray> CompileSettings::BuildCommandLineArgs(bool enableSpellCheck, const QString& filePath, const Project* project) const {
   std::vector<QByteArray> commandLineArgs;
   commandLineArgs.reserve(
       (enableSpellCheck ? 1 : 0) +
@@ -78,7 +78,9 @@ std::vector<QByteArray> CompileSettings::BuildCommandLineArgs(bool enableSpellCh
     // Make (lib)clang treat the file as CUDA code
     commandLineArgs.emplace_back("-xcuda");
     // Correct CUDA parsing seems to require the resource dir to be set
-    commandLineArgs.emplace_back("-resource-dir=" + project.GetClangResourceDir().toUtf8());
+    if (project) {
+      commandLineArgs.emplace_back("-resource-dir=" + project->GetClangResourceDir().toUtf8());
+    }
     // CUDA compilation actually compiles each .cu file multiple times, once
     // it compiles the host part, and then it compiles the CUDA parts again for
     // each chosen CUDA architecture. We somehow would like to get all at once

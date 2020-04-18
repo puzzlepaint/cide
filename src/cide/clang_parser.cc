@@ -247,7 +247,7 @@ void ParseAndOrIndexFileImpl(QString canonicalPath, Document* document, MainWind
       return;
     }
     
-    commandLineArgs = settings->BuildCommandLineArgs(true, canonicalPath, *usedProject);
+    commandLineArgs = settings->BuildCommandLineArgs(true, canonicalPath, usedProject.get());
     commandLineArgPtrs.resize(commandLineArgs.size());
     for (int i = 0; i < commandLineArgs.size(); ++ i) {
       commandLineArgPtrs[i] = commandLineArgs[i].data();
@@ -559,7 +559,7 @@ void ParseAndOrIndexFileImpl(QString canonicalPath, Document* document, MainWind
         
         if (fileSettings && !isGuess) {
           std::vector<QByteArray> commandLineArgs;
-          commandLineArgs = fileSettings->BuildCommandLineArgs(true, canonicalPath, *project);
+          commandLineArgs = fileSettings->BuildCommandLineArgs(true, canonicalPath, project.get());
           if (TU->CanBeReparsed(canonicalPath, commandLineArgs)) {
             // The compile settings are equal. Remove the warning about guessed compile settings.
             parseSettingsAreGuessedNotification = QStringLiteral("");
@@ -864,7 +864,7 @@ void IndexFile_GetInclusions(CXTranslationUnit clangTU, SourceFile* sourceFile, 
                 qDebug() << "Error: After adding an include to the list of includes of a SourceFile, querying project->FindSettingsForFile() for this include returned none or guessed compile settings. fileSettings:" << fileSettings << ", isGuess:" << isGuess;
               } else {
                 std::vector<QByteArray> commandLineArgs;
-                commandLineArgs = fileSettings->BuildCommandLineArgs(true, newPath, *project);
+                commandLineArgs = fileSettings->BuildCommandLineArgs(true, newPath, project);
                 if (includeTU->CanBeReparsed(newPath, commandLineArgs)) {
                   // The compile settings are equal. Remove the warning about guessed compile settings.
                   widget->GetContainer()->SetMessage(

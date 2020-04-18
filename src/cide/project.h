@@ -29,7 +29,7 @@ struct CompileSettings {
   };
   
   
-  std::vector<QByteArray> BuildCommandLineArgs(bool enableSpellCheck, const QString& filePath, const Project& project) const;
+  std::vector<QByteArray> BuildCommandLineArgs(bool enableSpellCheck, const QString& filePath, const Project* project) const;
   
   bool operator== (const CompileSettings& other);
   

@@ -43,7 +43,7 @@ QAction* FindAndReplaceInFiles::Initialize(MainWindow* mainWindow) {
   this->mainWindow = mainWindow;
   
   QAction* findAndReplaceInFilesAction = new ActionWithConfigurableShortcut(tr("Find and replace in files"), findAndReplaceInFilesShortcut, this);
-  connect(findAndReplaceInFilesAction, &QAction::triggered, this, &FindAndReplaceInFiles::ActionTriggered);
+  connect(findAndReplaceInFilesAction, &QAction::triggered, this, &FindAndReplaceInFiles::ShowDialogWithDefaultSettings);
   mainWindow->addAction(findAndReplaceInFilesAction);
   
   return findAndReplaceInFilesAction;
@@ -92,8 +92,8 @@ void FindAndReplaceInFiles::CreateDockWidget() {
   mainWindow->addDockWidget(Qt::BottomDockWidgetArea, findAndReplaceInFilesDock);
 }
 
-void FindAndReplaceInFiles::ActionTriggered() {
-  if (!ShowDialog()) {
+void FindAndReplaceInFiles::ShowDialog(const QString& initialPath) {
+  if (!ShowDialogInternal(initialPath)) {
     return;
   }
   
@@ -193,7 +193,7 @@ void FindAndReplaceInFiles::ActionTriggered() {
   findAndReplaceReplaceButton->setEnabled(true);
 }
 
-bool FindAndReplaceInFiles::ShowDialog() {
+bool FindAndReplaceInFiles::ShowDialogInternal(const QString initialPath) {
   QSettings settings;
   
   QDialog dialog(mainWindow);
@@ -223,7 +223,7 @@ bool FindAndReplaceInFiles::ShowDialog() {
   QLabel* inLabel = new QLabel(tr("In:"));
   layout->addWidget(inLabel, 1, 0);
   
-  QLineEdit* inEdit = new QLineEdit(settings.value("findAndReplaceInFiles/in").toString());
+  QLineEdit* inEdit = new QLineEdit(initialPath.isEmpty() ? settings.value("findAndReplaceInFiles/in").toString() : initialPath);
   layout->addWidget(inEdit, 1, 1);
   
   QPushButton* inButton = new QPushButton("...");
@@ -287,6 +287,10 @@ void FindAndReplaceInFiles::ReplaceClicked() {
     QMessageBox::warning(mainWindow, tr("Error(s) while replacing"), errorMessages);
   }
   findAndReplaceReplaceButton->setEnabled(false);
+}
+
+void FindAndReplaceInFiles::ShowDialogWithDefaultSettings() {
+  ShowDialog();
 }
 
 void FindAndReplaceInFiles::SetLastFileItem(const QDir& startDir, QTreeWidgetItem* lastFileItem, QString lastFilePath, int occurrencesInFile) {

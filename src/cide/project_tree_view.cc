@@ -25,7 +25,8 @@ ProjectTreeView::~ProjectTreeView() {
   delete contextMenu;
 }
 
-void ProjectTreeView::Initialize(MainWindow* mainWindow, QAction* showProjectFilesDockAction) {
+void ProjectTreeView::Initialize(MainWindow* mainWindow, QAction* showProjectFilesDockAction, FindAndReplaceInFiles* findAndReplaceInFiles) {
+  this->findAndReplaceInFiles = findAndReplaceInFiles;
   this->mainWindow = mainWindow;
   
   iconProvider.setOptions(QFileIconProvider::DontUseCustomDirectoryIcons);
@@ -40,6 +41,7 @@ void ProjectTreeView::Initialize(MainWindow* mainWindow, QAction* showProjectFil
   createClassAction = contextMenu->addAction(tr("Create class..."), this, &ProjectTreeView::CreateClass);
   createFileAction = contextMenu->addAction(tr("Create file..."), this, &ProjectTreeView::CreateFile);
   createFolderAction = contextMenu->addAction(tr("Create folder..."), this, &ProjectTreeView::CreateFolder);
+  searchInFolderAction = contextMenu->addAction(tr("Search in folder..."), this, &ProjectTreeView::SearchInFolder);
   renameAction = contextMenu->addAction(tr("Rename..."), this, &ProjectTreeView::Rename);
   deleteAction = contextMenu->addAction(tr("Delete"), this, &ProjectTreeView::DeleteSelectedItems);
   
@@ -517,6 +519,10 @@ void ProjectTreeView::CreateFolder() {
   folder.mkdir(folderName);
   
   UpdateGitStatus();
+}
+
+void ProjectTreeView::SearchInFolder() {
+  findAndReplaceInFiles->ShowDialog(GetItemPath(rightClickedItem));
 }
 
 void ProjectTreeView::Rename() {

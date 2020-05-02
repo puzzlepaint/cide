@@ -12,6 +12,7 @@
 #include <QObject>
 #include <QTimer>
 
+#include "cide/find_and_replace_in_files.h"
 #include "cide/util.h"
 
 class DockWidgetWithClosedSignal;
@@ -27,7 +28,7 @@ class ProjectTreeView : public QObject {
  Q_OBJECT
  public:
   ~ProjectTreeView();
-  void Initialize(MainWindow* mainWindow, QAction* showProjectFilesDockAction);
+  void Initialize(MainWindow* mainWindow, QAction* showProjectFilesDockAction, FindAndReplaceInFiles* findAndReplaceInFiles);
   
   inline DockWidgetWithClosedSignal* GetDockWidget() { return dock; }
   
@@ -60,6 +61,7 @@ class ProjectTreeView : public QObject {
   void CreateClass();
   void CreateFile();
   void CreateFolder();
+  void SearchInFolder();
   void Rename();
   void DeleteSelectedItems();
   
@@ -98,6 +100,7 @@ class ProjectTreeView : public QObject {
   QAction* createClassAction;
   QAction* createFileAction;
   QAction* createFolderAction;
+  QAction* searchInFolderAction;
   QAction* renameAction;
   QAction* deleteAction;
   
@@ -115,5 +118,6 @@ class ProjectTreeView : public QObject {
   
   QFileSystemWatcher watcher;
   
+  FindAndReplaceInFiles* findAndReplaceInFiles;
   MainWindow* mainWindow;
 };

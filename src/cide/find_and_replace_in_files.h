@@ -27,17 +27,20 @@ class FindAndReplaceInFiles : public QObject {
  public slots:
   void CreateDockWidget();
   
-  void ActionTriggered();
+  void ShowDialog(const QString& initialPath = "");
   
+  void ReplaceClicked();
+  
+ private slots:
+  void ShowDialogWithDefaultSettings();
+  
+ private:
   /// Shows the search dialog that allows entering the text to serach for, set
   /// the search directory, etc. Returns true if the dialog was accepted. The
   /// entered information is put into the corresponding attributes of this
   /// class (findText, searchFolderPath).
-  bool ShowDialog();
+  bool ShowDialogInternal(const QString initialPath);
   
-  void ReplaceClicked();
-  
- private:
   void SetLastFileItem(const QDir& startDir, QTreeWidgetItem* lastFileItem, QString lastFilePath, int occurrencesInFile);
   
   void SearchInDocument(Document* document, const QDir& startDir, const QString& filePath, QTreeWidgetItem*& lastFileItem, QString& lastFilePath, int& occurrencesInFile, int& numOccurrences);

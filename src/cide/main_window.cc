@@ -234,7 +234,7 @@ MainWindow::MainWindow(QWidget* parent)
   setMenuBar(menuBar);
   
   // Project tree view
-  projectTreeView.Initialize(this, showProjectFilesDockAction);
+  projectTreeView.Initialize(this, showProjectFilesDockAction, &findAndReplaceInFiles);
   
   // Build output dock widget
   buildOutputWidget = new DockWidgetWithClosedSignal(tr("Build"));

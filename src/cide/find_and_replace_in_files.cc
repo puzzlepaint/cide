@@ -60,6 +60,7 @@ void FindAndReplaceInFiles::CreateDockWidget() {
   findAndReplaceResultsLabel = new QLabel();
   QLabel* findAndReplaceReplacementLabel = new QLabel(tr("Replace with: "));
   findAndReplaceEdit = new QLineEdit();
+  findAndReplaceEdit->setMinimumWidth(400);
   findAndReplaceReplaceButton = new QPushButton(tr("Replace"));
   connect(findAndReplaceReplaceButton, &QPushButton::clicked, this, &FindAndReplaceInFiles::ReplaceClicked);
   

@@ -220,7 +220,7 @@ bool FindAndReplaceInFiles::ShowDialogInternal(const QString initialPath) {
   matchCaseCheck->setChecked(true);
   layout->addWidget(matchCaseCheck, 0, 2);
   
-  // In: [   ](...)
+  // In: [   ](...)(Set to current directory)
   QLabel* inLabel = new QLabel(tr("In:"));
   layout->addWidget(inLabel, 1, 0);
   
@@ -229,7 +229,15 @@ bool FindAndReplaceInFiles::ShowDialogInternal(const QString initialPath) {
   
   QPushButton* inButton = new QPushButton("...");
   MinimizeButtonSize(inButton, 1.5);
-  layout->addWidget(inButton, 1, 2);
+  
+  QPushButton* setToCurrentDirectoryButton = new QPushButton(tr("Set to current directory"));
+  setToCurrentDirectoryButton->setEnabled(mainWindow->GetCurrentDocument() != nullptr);
+  
+  QHBoxLayout* buttonsLayout = new QHBoxLayout();
+  buttonsLayout->setContentsMargins(0, 0, 0, 0);
+  buttonsLayout->addWidget(inButton);
+  buttonsLayout->addWidget(setToCurrentDirectoryButton);
+  layout->addLayout(buttonsLayout, 1, 2);
   
   QDialogButtonBox* buttonBox = new QDialogButtonBox(QDialogButtonBox::Cancel);
   buttonBox->addButton(tr("Search"), QDialogButtonBox::AcceptRole);
@@ -241,6 +249,7 @@ bool FindAndReplaceInFiles::ShowDialogInternal(const QString initialPath) {
   verticalLayout->addWidget(buttonBox);
   
   dialog.setLayout(verticalLayout);
+  
   connect(inButton, &QPushButton::clicked, [&]() {
     QString dir = QFileDialog::getExistingDirectory(
         &dialog,
@@ -249,6 +258,13 @@ bool FindAndReplaceInFiles::ShowDialogInternal(const QString initialPath) {
         QFileDialog::DontUseNativeDialog);
     if (!dir.isEmpty()) {
       inEdit->setText(dir);
+    }
+  });
+  
+  connect(setToCurrentDirectoryButton, &QPushButton::clicked, [&]() {
+    auto currentDocument = mainWindow->GetCurrentDocument();
+    if (currentDocument) {
+      inEdit->setText(QFileInfo(currentDocument->path()).dir().path());
     }
   });
   

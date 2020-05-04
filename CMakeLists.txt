@@ -16,6 +16,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 
+if (NOT ${CMAKE_MAKE_PROGRAM} MATCHES "ninja")
+  message(WARNING "Not using the Ninja Generator may lead to build failure.")
+endif()
+
 # --- Dependencies ---
 
 # Cross-platform threading. See:

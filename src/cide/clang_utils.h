@@ -107,6 +107,14 @@ inline DocumentRange CXSourceRangeToDocumentRange(const CXSourceRange& range, co
     return DocumentRange::Invalid();
   }
   
+  if (startLocation > endLocation) {
+    // This happened as well.
+    qDebug() << "Warning: Got a range with end < start from clang:";
+    qDebug() << "startLine: " << startLine << ", startColumn: " << startColumn;
+    qDebug() << "endLine: " << endLine << ", endColumn: " << endColumn;
+    return DocumentRange(endLocation, startLocation);
+  }
+  
   return DocumentRange(startLocation, endLocation);
 }
 

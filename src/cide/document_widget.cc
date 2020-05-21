@@ -2260,63 +2260,71 @@ void DocumentWidget::TabPressed(bool shiftHeld) {
     Document::CharacterIterator it(document.get());
     
     bool keepCursorPos = false;
+    int columns;
     if (shiftHeld) {
       // If Shift is held and there is no whitespace before the cursor,
-      // move the cursor to the start of the line to un-indent there.
+      // move the iterator to the start of the line to un-indent there.
       it = Document::CharacterIterator(document.get(), std::max(0, cursorLoc.offset - 1));
       if (it.IsValid() && !IsWhitespace(it.GetChar())) {
         it = Document::CharacterIterator(document.get(), layoutLines[cursorLine].start.offset);
+        columns = 0;
         keepCursorPos = true;
-      } else if (it.IsValid() && it.GetChar() == '\t') {
-        // Delete the tab character before the cursor.
-        Replace(DocumentRange(cursorLoc.offset - 1, cursorLoc.offset), QStringLiteral(""));
-        update(rect());  // TODO: limit update
-        return;
       } else {
+        // Un-indent the section of whitespace in which the cursor is.
         ++ it;
+        GetTextWidth(document->TextForRange(DocumentRange(layoutLines[cursorLine].start.offset, it.GetCharacterOffset())), 0, &columns);
       }
       cursorLoc = it.GetCharacterOffset();
     } else {
+      // Indent the section of whitespace in which the cursor is.
       it = Document::CharacterIterator(document.get(), cursorLoc.offset);
+      GetTextWidth(document->TextForRange(DocumentRange(layoutLines[cursorLine].start.offset, it.GetCharacterOffset())), 0, &columns);
     }
     
+    // Move the iterator to the right of the current section of whitespace
+    // in order to perform the insertion or deletion there.
     bool lastCharacterIsTab = false;
-    int numSpaces = 0;
     while (it.IsValid()) {
       QChar c = it.GetChar();
       if (c != ' ' && c != '\t') {
         break;
       }
       lastCharacterIsTab = (c == '\t');
-      ++ numSpaces;
+      int characterColumns;
+      GetTextWidth(c, columns, &characterColumns);
+      columns += characterColumns;
       ++ it;
     }
-    cursorLoc += numSpaces;
+    cursorLoc = it.GetCharacterOffset();
     
-    int numCharacters = cursorLoc.offset - layoutLines[cursorLine].start.offset;
-    int desiredCharacters;
+    // Perform the insertion or deletion.
     if (!shiftHeld) {
-      desiredCharacters = (numCharacters / spacesPerTab) * spacesPerTab + spacesPerTab;
-      int numAddedSpaces = desiredCharacters - numCharacters;
+      int desiredCharacters = (columns / spacesPerTab) * spacesPerTab + spacesPerTab;
+      int numAddedSpaces = desiredCharacters - columns;
       document->Replace(DocumentRange(cursorLoc, cursorLoc), QStringLiteral(" ").repeated(numAddedSpaces));
       SetCursor(cursorLoc + numAddedSpaces, false);
     } else if (lastCharacterIsTab) {
       // Simply delete the last character.
-      Replace(DocumentRange(layoutLines[cursorLine].start.offset + numCharacters - 1, layoutLines[cursorLine].start.offset + numCharacters), QStringLiteral(""));
-      update(rect());  // TODO: limit update
-      return;
+      Replace(DocumentRange(cursorLoc - 1, cursorLoc), QStringLiteral(""));
+      SetCursor(cursorLoc - 1, false);
     } else {
-      desiredCharacters = std::max(0, ((numCharacters - 1) / spacesPerTab + 1) * spacesPerTab - spacesPerTab);
-      if (desiredCharacters < numCharacters) {
-        DocumentRange rangeToRemove(layoutLines[cursorLine].start.offset + desiredCharacters, layoutLines[cursorLine].start.offset + numCharacters);
+      int desiredCharacters = std::max(0, ((columns - 1) / spacesPerTab + 1) * spacesPerTab - spacesPerTab);
+      if (desiredCharacters < columns) {
+        DocumentRange rangeToRemove(cursorLoc.offset - (columns - desiredCharacters), cursorLoc.offset);
         QString rangeText = document->TextForRange(rangeToRemove);
         int lastNonSpace = -1;
+        bool lastCharacterIsTab = false;
         for (int c = 0; c < rangeText.size(); ++ c) {
-          if (rangeText[c] != ' ') {
+          if (rangeText[c] != ' ' && rangeText[c] != '\t') {
             lastNonSpace = c;
           }
+          lastCharacterIsTab = rangeText[c] == '\t';
         }
-        rangeToRemove.start += (1 + lastNonSpace);
+        if (lastCharacterIsTab) {
+          rangeToRemove.start = std::max(0, rangeToRemove.end.offset - 1);
+        } else {
+          rangeToRemove.start += (1 + lastNonSpace);
+        }
         if (rangeToRemove.size() > 0) {
           document->Replace(rangeToRemove, QStringLiteral(""));
         }
@@ -2363,30 +2371,40 @@ void DocumentWidget::TabPressed(bool shiftHeld) {
     document->StartUndoStep();
     for (int i = static_cast<int>(lineStarts.size()) - 1; i >= 0; -- i) {
       // Find the whitespace range at the line start.
-      int numSpaces = 0;
+      bool lastCharacterIsTab = false;
+      int columns = 0;
       Document::CharacterIterator it(document.get(), lineStarts[i].offset);
       while (it.IsValid()) {
-        if (it.GetChar() != ' ') {
+        QChar c = it.GetChar();
+        if (c != ' ' && c != '\t') {
           break;
         }
-        ++ numSpaces;
+        lastCharacterIsTab = (c == '\t');
+        int characterColumns;
+        GetTextWidth(c, columns, &characterColumns);
+        columns += characterColumns;
         ++ it;
       }
       
+      int numCharacters = it.GetCharacterOffset() - lineStarts[i].offset;
       int desiredSpaces;
       if (!shiftHeld) {
-        desiredSpaces = (numSpaces / spacesPerTab) * spacesPerTab + spacesPerTab;
-        int numAddedSpaces = desiredSpaces - numSpaces;
-        DocumentLocation spaceEndLocation = lineStarts[i] + numSpaces;
+        desiredSpaces = (columns / spacesPerTab) * spacesPerTab + spacesPerTab;
+        int numAddedSpaces = desiredSpaces - columns;
+        DocumentLocation spaceEndLocation = lineStarts[i] + numCharacters;
         document->Replace(DocumentRange(spaceEndLocation, spaceEndLocation), QStringLiteral(" ").repeated(numAddedSpaces));
+        lastLineEnd += (desiredSpaces - columns);
+      } else if (lastCharacterIsTab) {
+        // Simply delete the last character.
+        Replace(DocumentRange(lineStarts[i] + numCharacters - 1, lineStarts[i] + numCharacters), QStringLiteral(""));
+        lastLineEnd -= 1;
       } else {
-        desiredSpaces = std::max(0, ((numSpaces - 1) / spacesPerTab + 1) * spacesPerTab - spacesPerTab);
-        if (desiredSpaces < numSpaces) {
-          document->Replace(DocumentRange(lineStarts[i] + desiredSpaces, lineStarts[i] + numSpaces), QStringLiteral(""));
+        desiredSpaces = std::max(0, ((columns - 1) / spacesPerTab + 1) * spacesPerTab - spacesPerTab);
+        if (desiredSpaces < columns) {
+          document->Replace(DocumentRange(lineStarts[i] + numCharacters - (columns - desiredSpaces), lineStarts[i] + numCharacters), QStringLiteral(""));
         }
+        lastLineEnd += (desiredSpaces - columns);
       }
-      
-      lastLineEnd += (desiredSpaces - numSpaces);
     }
     document->EndUndoStep();
     

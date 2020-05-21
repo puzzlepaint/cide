@@ -880,6 +880,11 @@ void Document::EndUndoStep() {
   }
   creatingCombinedUndoStep = false;
   
+  // If no undo steps have been added since the call to StartUndoStep(), abort.
+  if (combinedUndoReplacements.empty()) {
+    return;
+  }
+  
   // Bring accumulated undo steps into the correct order
   std::reverse(combinedUndoReplacements.begin(), combinedUndoReplacements.end());
   
@@ -1558,8 +1563,13 @@ bool Document::UndoRedoImpl(bool redo, DocumentRange* newTextRange) {
   }
   
   if (newTextRange) {
-    // TODO: This only outputs the data of the last replacement, should we output all?
-    *newTextRange = DocumentRange(doLink->replacements.back().range.start, doLink->replacements.back().range.start + doLink->replacements.back().text.size());
+    if (doLink->replacements.empty()) {
+      *newTextRange = DocumentRange::Invalid();
+    } else {
+      // TODO: This only outputs the data of the last replacement, should we output all?
+      const Replacement& lastReplacement = doLink->replacements.back();
+      *newTextRange = DocumentRange(lastReplacement.range.start, lastReplacement.range.start + lastReplacement.text.size());
+    }
   }
   
   // Update the version graph.

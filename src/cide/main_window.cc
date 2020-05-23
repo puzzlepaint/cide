@@ -27,6 +27,7 @@
 #include "cide/about_dialog.h"
 #include "cide/cpp_utils.h"
 #include "cide/clang_parser.h"
+#include "cide/clang_utils.h"
 #include "cide/crash_backup.h"
 #include "cide/new_project_dialog.h"
 #include "cide/parse_thread_pool.h"
@@ -203,6 +204,7 @@ MainWindow::MainWindow(QWidget* parent)
   projectMenu->addAction(tr("Project settings..."), this, &MainWindow::ShowProjectSettings);
   projectMenu->addSeparator();
   currentFileParseSettingsAction = projectMenu->addAction(tr("Parse settings for current file..."), this, &MainWindow::ParseSettingsForCurrentFile);
+  currentFileParseIssuesAction = projectMenu->addAction(tr("All parse issues for current file..."), this, &MainWindow::ParseIssuesForCurrentFile);
   projectMenu->addSeparator();
   newProjectAction = projectMenu->addAction(tr("New project..."), [&]() { NewProject(this); });
   openProjectAction = projectMenu->addAction(tr("Open project..."), [&]() { OpenProject(this); });
@@ -447,7 +449,7 @@ DocumentWidget* MainWindow::GetCurrentDocumentWidget() const {
 }
 
 DocumentWidget* MainWindow::GetWidgetForDocument(Document* document) const {
-  for (const std::pair<int, TabData>& item : tabs) {
+  for (const std::pair<const int, TabData>& item : tabs) {
     if (item.second.document.get() == document) {
       return item.second.widget;
     }
@@ -478,7 +480,7 @@ std::shared_ptr<Document> MainWindow::GetDocument(int index) {
 }
 
 bool MainWindow::IsFileOpen(const QString& canonicalPath) const {
-  for (const std::pair<int, TabData>& item : tabs) {
+  for (const std::pair<const int, TabData>& item : tabs) {
     if (item.second.document->path() == canonicalPath) {
       return true;
     }
@@ -487,7 +489,7 @@ bool MainWindow::IsFileOpen(const QString& canonicalPath) const {
 }
 
 bool MainWindow::GetDocumentAndWidgetForPath(const QString& canonicalPath, Document** document, DocumentWidget** widget) const {
-  for (const std::pair<int, TabData>& item : tabs) {
+  for (const std::pair<const int, TabData>& item : tabs) {
     if (item.second.document->path() == canonicalPath) {
       *document = item.second.document.get();
       *widget = item.second.widget;
@@ -498,7 +500,7 @@ bool MainWindow::GetDocumentAndWidgetForPath(const QString& canonicalPath, Docum
 }
 
 void MainWindow::DocumentParsed(Document* document) {
-  for (const std::pair<int, TabData>& item : tabs) {
+  for (const std::pair<const int, TabData>& item : tabs) {
     if (item.second.document.get() == document) {
       int tabIndex = FindTabIndexForTabDataIndex(item.first);
       if (tabIndex >= 0) {
@@ -551,7 +553,7 @@ void MainWindow::Open(const QString& path) {
   
   // Search for the document among the already open tabs
   QString canonicalFilePath = QFileInfo(path).canonicalFilePath();
-  for (const std::pair<int, TabData>& item : tabs) {
+  for (const std::pair<const int, TabData>& item : tabs) {
     if (item.second.document->path() == canonicalFilePath) {
       tabBar->setCurrentIndex(FindTabIndexForTabDataIndex(item.first));
       return;
@@ -744,6 +746,151 @@ void MainWindow::ParseSettingsForCurrentFile() {
   layout->addWidget(buttonBox);
   
   dialog.setLayout(layout);
+  dialog.resize(std::max(dialog.width(), 800), std::max(dialog.height(), 600));
+  
+  dialog.exec();
+}
+
+void MainWindow::ParseIssuesForCurrentFile() {
+  TabData* tab = GetCurrentTabData();
+  if (!tab) {
+    return;
+  }
+  
+  // Obtain a libclang TU for the current file
+  QEventLoop waitEventLoop;
+  
+  QProgressDialog progress(tr("Retrieving parse issues ..."), tr("Abort"), 0, 0, this);
+  progress.setMinimumDuration(200);
+  progress.setValue(0);
+  progress.setWindowModality(Qt::WindowModal);
+  
+  // Wait for all parses of this document to finish
+  while (true) {
+    if (!ParseThreadPool::Instance().DoesAParseRequestExistForDocument(tab->document.get()) &&
+        !ParseThreadPool::Instance().IsDocumentBeingParsed(tab->document.get())) {
+      break;
+    }
+    
+    QThread::msleep(10);
+    progress.setValue(0);
+    waitEventLoop.processEvents();
+    if (progress.wasCanceled()) {
+      return;
+    }
+  }
+  
+  // Wait until we get the document's most up-to-date TU.
+  std::shared_ptr<ClangTU> TU;
+  while (true) {
+    TU = tab->document->GetTUPool()->TakeMostUpToDateTU();
+    if (TU) {
+      break;
+    }
+    
+    QThread::msleep(10);
+    progress.setValue(0);
+    waitEventLoop.processEvents();
+    if (progress.wasCanceled()) {
+      return;
+    }
+  }
+  
+  progress.hide();
+  
+  // Get all parse diagnostics.
+  QString issuesString = QStringLiteral("");
+  
+  CXFile documentFile = clang_getFile(TU->TU(), QFileInfo(tab->document->path()).canonicalFilePath().toUtf8().data());
+  
+  unsigned numDiagnostics = clang_getNumDiagnostics(TU->TU());
+  for (unsigned diagnosticIndex = 0; diagnosticIndex < numDiagnostics; ++ diagnosticIndex) {
+    // Holds pairs of (prefix, diagnostic).
+    std::vector<std::pair<QString, CXDiagnostic>> diagnostics = {std::make_pair(QString(), clang_getDiagnostic(TU->TU(), diagnosticIndex))};
+    
+    while (!diagnostics.empty()) {
+      const auto item = diagnostics.back();
+      diagnostics.pop_back();
+      const QString& prefix = item.first;
+      CXDiagnostic diagnostic = item.second;
+      
+      issuesString += prefix;
+      
+      CXSourceLocation diagnosticLoc = clang_getDiagnosticLocation(diagnostic);
+      CXFile diagnosticFile;
+      unsigned diagnosticLine;
+      unsigned diagnosticColumn;
+      clang_getFileLocation(
+          diagnosticLoc,
+          &diagnosticFile,
+          &diagnosticLine,
+          &diagnosticColumn,
+          nullptr);
+      
+      if (clang_File_isEqual(diagnosticFile, documentFile)) {
+        issuesString += tr("<b>");
+      }
+      issuesString +=
+          ClangString(clang_getFileName(diagnosticFile)).ToQString().toHtmlEscaped() + QStringLiteral(":") +
+          QString::number(diagnosticLine) + QStringLiteral(":") +
+          QString::number(diagnosticColumn);
+      if (clang_File_isEqual(diagnosticFile, documentFile)) {
+        issuesString += tr("</b>");
+      }
+      
+      CXDiagnosticSeverity severity = clang_getDiagnosticSeverity(diagnostic);
+      if (severity == CXDiagnostic_Fatal) {
+        issuesString += tr(" <span style=\"color:red;\">Fatal</span>: ");
+      } else if (severity == CXDiagnostic_Error) {
+        issuesString += tr(" <span style=\"color:red;\">Error</span>: ");
+      } else if (severity == CXDiagnostic_Warning) {
+        issuesString += tr(" <span style=\"color:orange;\">Warning</span>: ");
+      } else if (severity == CXDiagnostic_Note) {
+        issuesString += tr(" <span style=\"color:gray;\">Note</span>: ");
+      } else if (severity == CXDiagnostic_Ignored) {
+        issuesString += tr(" <span style=\"color:gray;\">(Ignored:)</span> ");
+      }
+      
+      issuesString += ClangString(clang_getDiagnosticSpelling(diagnostic)).ToQString().toHtmlEscaped();
+      issuesString += QStringLiteral("<br/>");
+      
+      // Add child diagnostics to work list in reverse order
+      CXDiagnosticSet children = clang_getChildDiagnostics(diagnostic);
+      int numChildren = clang_getNumDiagnosticsInSet(children);
+      for (int i = numChildren - 1; i >= 0; -- i) {
+        diagnostics.push_back(std::make_pair(prefix + QStringLiteral("  "), clang_getDiagnosticInSet(children, i)));
+      }
+      
+      clang_disposeDiagnostic(diagnostic);
+    }
+  }
+  
+  // Return the document's TU.
+  tab->document->GetTUPool()->PutTU(TU, false);
+  
+  // Show the obtained parse diagnostics.
+  QDialog dialog(this);
+  dialog.setWindowTitle(tr("Parse issues for: %1").arg(tab->document->path()));
+  dialog.setWindowIcon(QIcon(":/cide/cide.png"));
+  
+  QVBoxLayout* layout = new QVBoxLayout();
+  QLabel* descriptionLabel = new QLabel(tr(
+      "This shows <b>all</b> parse issues for the current file, including those that originate"
+      " from header files parsed within the same translation unit. This may be helpful to"
+      " debug parsing problems, since issues from header files may cause other issues later."));
+  descriptionLabel->setWordWrap(true);
+  layout->addWidget(descriptionLabel);
+  
+  QTextEdit* issuesEdit = new QTextEdit(issuesString);
+  issuesEdit->setReadOnly(true);
+  layout->addWidget(issuesEdit);
+  
+  QDialogButtonBox* buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok);
+  connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+  layout->addWidget(buttonBox);
+  
+  dialog.setLayout(layout);
+  dialog.resize(std::max(dialog.width(), 800), std::max(dialog.height(), 600));
   
   dialog.exec();
 }
@@ -1187,7 +1334,7 @@ void MainWindow::BuildCurrentTarget() {
   }
   
   // Save all modified files
-  for (const std::pair<int, TabData>& item : tabs) {
+  for (const std::pair<const int, TabData>& item : tabs) {
     if (item.second.document->HasUnsavedChanges()) {
       Save(&item.second, item.second.document->path());
     }
@@ -1731,6 +1878,7 @@ void MainWindow::CurrentTabChanged(int /*index*/) {
   saveAsAction->setEnabled(tabData != nullptr);
   closeAction->setEnabled(tabData != nullptr);
   currentFileParseSettingsAction->setEnabled(tabData != nullptr);
+  currentFileParseIssuesAction->setEnabled(tabData != nullptr);
   
   CurrentOrOpenDocumentsChanged();
   
@@ -1827,7 +1975,7 @@ void MainWindow::GotoDocumentLocation(const QString& url) {
   
   // If we can find this file among the open tabs, activate that tab.
   DocumentWidget* widget = nullptr;
-  for (const std::pair<int, TabData>& item : tabs) {
+  for (const std::pair<const int, TabData>& item : tabs) {
     if (item.second.document->path() == path) {
       tabBar->setCurrentIndex(FindTabIndexForTabDataIndex(item.first));
       widget = item.second.widget;
@@ -1895,7 +2043,7 @@ void MainWindow::DocumentChanged(Document* changedDocument) {
   
   // Go through all other open files. For each one that includes the changed file,
   // mark it as to be reparsed on next activation.
-  for (const std::pair<int, TabData>& item : tabs) {
+  for (const std::pair<const int, TabData>& item : tabs) {
     if (item.second.document.get() == changedDocument) {
       continue;
     }
@@ -2051,7 +2199,7 @@ void MainWindow::AddTab(Document* document, const QString& name, DocumentWidget*
   QString correspondingPath = QFileInfo(FindCorrespondingHeaderOrSource(document->path(), projects)).canonicalFilePath();
   if (!correspondingPath.isEmpty()) {
     // We found a corresponding path in the file system, search for it among the open tabs
-    for (const std::pair<int, TabData>& item : tabs) {
+    for (const std::pair<const int, TabData>& item : tabs) {
       if (item.second.document->path() == correspondingPath) {
         int correspondingIndex = FindTabIndexForTabDataIndex(item.first);
         if (correspondingIndex >= 0) {
@@ -2211,7 +2359,7 @@ void MainWindow::LoadSession() {
       Open(path);
       
       QString canonicalFilePath = QFileInfo(path).canonicalFilePath();
-      for (const std::pair<int, TabData>& item : tabs) {
+      for (const std::pair<const int, TabData>& item : tabs) {
         Document* document = item.second.document.get();
         if (document->path() == canonicalFilePath) {
           item.second.widget->SetYScroll(settings.value("yScroll").toInt());

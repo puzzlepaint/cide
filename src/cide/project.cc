@@ -360,7 +360,7 @@ bool Project::Save(const QString& path) {
   return true;
 }
 
-bool Project::Configure(QString* errorReason, QWidget* parent) {
+bool Project::Configure(QString* errorReason, QString* warnings, QWidget* parent) {
   // This uses the CMake file API. See:
   // https://cmake.org/cmake/help/latest/manual/cmake-file-api.7.html
   
@@ -578,23 +578,25 @@ bool Project::Configure(QString* errorReason, QWidget* parent) {
   
   cxxCompiler = "";
   cxxDefaultIncludes.clear();
+  QString cxxCompilerVersion;
   
   cCompiler = "";
   cDefaultIncludes.clear();
+  QString cCompilerVersion;
   
   for (int i = 0; i < cacheEntriesNode.size(); ++ i) {
     YAML::Node node = cacheEntriesNode[i];
     
     if (node["name"].as<std::string>() == "CMAKE_CXX_COMPILER") {
       cxxCompiler = node["value"].as<std::string>();
-      FindCompilerDefaults(cxxCompiler, &cxxDefaultIncludes);
+      FindCompilerDefaults(cxxCompiler, &cxxDefaultIncludes, &cxxCompilerVersion);
       
       if (clangResourceDir.isEmpty()) {
         QueryClangResourceDir(cxxCompiler, &clangResourceDir);
       }
     } else if (node["name"].as<std::string>() == "CMAKE_C_COMPILER") {
       cCompiler = node["value"].as<std::string>();
-      FindCompilerDefaults(cCompiler, &cDefaultIncludes);
+      FindCompilerDefaults(cCompiler, &cDefaultIncludes, &cCompilerVersion);
       
       if (clangResourceDir.isEmpty()) {
         QueryClangResourceDir(cCompiler, &clangResourceDir);
@@ -604,6 +606,26 @@ bool Project::Configure(QString* errorReason, QWidget* parent) {
   
   if (cxxCompiler.empty() && cCompiler.empty()) {
     qDebug("Warning: Found neither CXX nor C compiler path");
+  }
+  
+  // Check whether the used libclang version matches the versions of the compilers that were used
+  // to get the default paths. Warn the user if there is a mismatch.
+  QString libclangVersion = ClangString(clang_getClangVersion()).ToQString().trimmed();
+  if (!cxxCompiler.empty() && cxxCompilerVersion != libclangVersion) {
+    *warnings += tr("The libclang version used by CIDE (%1) differs from the C++ compiler version used"
+                    " to get the default paths for the project (%2). This may cause parse issues due"
+                    " to the use of incompatible versions of system headers. To avoid this, configure the"
+                    " default compiler (in the CIDE program settings) to the path to a clang binary with"
+                    " the same version as the used libclang version (%1), and enable using the default"
+                    " compiler in the project settings.").arg(libclangVersion).arg(cxxCompilerVersion);
+  }
+  if (!cCompiler.empty() && cCompilerVersion != libclangVersion) {
+    *warnings += tr("The libclang version used by CIDE (%1) differs from the C compiler version used"
+                    " to get the default paths for the project (%2). This may cause parse issues due"
+                    " to the use of incompatible versions of system headers. To avoid this, configure the"
+                    " default compiler (in the CIDE program settings) to the path to a clang binary with"
+                    " the same version as the used libclang version (%1), and enable using the default"
+                    " compiler in the project settings.").arg(libclangVersion).arg(cCompilerVersion);
   }
   
   // Read the codemodel reply.
@@ -1019,7 +1041,8 @@ void Project::CMakeFileChanged() {
 
 bool Project::FindCompilerDefaults(
     const std::string& compilerPath,
-    std::vector<QString>* includes) {
+    std::vector<QString>* includes,
+    QString* compilerVersion) {
   std::shared_ptr<QProcess> compilerProcess(new QProcess());
   QStringList arguments;
   arguments << "-x" << "c++" << "-v" << "-E" << "-";
@@ -1058,6 +1081,8 @@ bool Project::FindCompilerDefaults(
     if (line.startsWith("#include ")) {
       includesListStarted = true;
       continue;
+    } else if (line.startsWith("clang version") || line.startsWith("gcc version")) {
+      *compilerVersion = line.trimmed();
     } else if (line == "End of search list.") {
       break;
     } else if (includesListStarted) {

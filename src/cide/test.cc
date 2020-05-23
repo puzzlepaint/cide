@@ -683,9 +683,10 @@ TEST(Project, Reconfigure) {
   
   // Reconfigure the project
   QString errorReason;
+  QString warnings;
   bool result;
   RunInQtThreadBlocking([&]() {
-    result = project->Configure(&errorReason, nullptr);
+    result = project->Configure(&errorReason, &warnings, nullptr);
   });
   if (!result) {
     qDebug() << "Reconfiguring failed, error reason given is:" << errorReason;

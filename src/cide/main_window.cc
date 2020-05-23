@@ -414,11 +414,15 @@ bool MainWindow::LoadProject(const QString& path, QWidget* parent) {
   
   // Configure the project
   QString errorReason;
-  if (!newProject->Configure(&errorReason, parent)) {
+  QString warnings;
+  if (!newProject->Configure(&errorReason, &warnings, parent)) {
     if (isVisible()) {
       QMessageBox::warning(parent, tr("Error"), tr("The project failed to configure. Reason:\n\n%1").arg(errorReason));
     }
     return true;
+  }
+  if (!warnings.isEmpty()) {
+    QMessageBox::warning(parent, tr("Warning"), tr("Configuring the project generated the following warning(s):\n\n%1").arg(warnings));
   }
   
   UpdateBuildTargetCombo();
@@ -672,9 +676,13 @@ void MainWindow::Reconfigure() {
 
 void MainWindow::ReconfigureProject(const std::shared_ptr<Project>& project, QWidget* parent) {
   QString errorReason;
-  if (!project->Configure(&errorReason, parent)) {
+  QString warnings;
+  if (!project->Configure(&errorReason, &warnings, parent)) {
     QMessageBox::warning(parent, tr("Error"), tr("The project failed to configure. Reason:\n\n%1").arg(errorReason));
     return;
+  }
+  if (!warnings.isEmpty()) {
+    QMessageBox::warning(parent, tr("Warning"), tr("Configuring the project generated the following warning(s):\n\n%1").arg(warnings));
   }
   
   if (project->GetIndexAllProjectFiles()) {

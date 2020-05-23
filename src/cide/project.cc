@@ -617,7 +617,7 @@ bool Project::Configure(QString* errorReason, QString* warnings, QWidget* parent
                     " to the use of incompatible versions of system headers. To avoid this, configure the"
                     " default compiler (in the CIDE program settings) to the path to a clang binary with"
                     " the same version as the used libclang version (%1), and enable using the default"
-                    " compiler in the project settings.").arg(libclangVersion).arg(cxxCompilerVersion);
+                    " compiler in the project settings.\n").arg(libclangVersion).arg(cxxCompilerVersion);
   }
   if (!cCompiler.empty() && cCompilerVersion != libclangVersion) {
     *warnings += tr("The libclang version used by CIDE (%1) differs from the C compiler version used"
@@ -625,7 +625,7 @@ bool Project::Configure(QString* errorReason, QString* warnings, QWidget* parent
                     " to the use of incompatible versions of system headers. To avoid this, configure the"
                     " default compiler (in the CIDE program settings) to the path to a clang binary with"
                     " the same version as the used libclang version (%1), and enable using the default"
-                    " compiler in the project settings.").arg(libclangVersion).arg(cCompilerVersion);
+                    " compiler in the project settings.\n").arg(libclangVersion).arg(cCompilerVersion);
   }
   
   // Read the codemodel reply.

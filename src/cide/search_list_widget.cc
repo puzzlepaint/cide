@@ -153,7 +153,7 @@ void SearchListWidget::Relayout() {
       scrollBar->setVisible(true);
       scrollBar->setRange(0, maxScroll);
     }
-  } else if (scrollBar->isVisible()) {
+  } else {
     int maxScroll = numShownItems * lineHeight - (height() - 2);
     scrollBar->setRange(0, maxScroll);
   }

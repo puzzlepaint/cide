@@ -246,6 +246,10 @@ Note that the shortcuts are configurable in the program settings.
 
 * The program can be configured in the program settings, however, do not forget
   to also check the project settings for additional per-project options.
+* Code completion works best if the setting for the key to accept the current completion item
+  is set to the Tab key only, not the Return key, since the latter may easily cause code
+  completion to be triggered accidentally. However, the default setting is to use both the
+  Tab and Return keys, since it may be too confusing for new users otherwise.
 * To rename a variable/function/etc., either right-click its name and choose
   the corresponding menu option, or set the cursor to its name and press F2.
 * Hovering something in the code highlights all of its occurrences in the

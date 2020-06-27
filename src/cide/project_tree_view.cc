@@ -12,6 +12,7 @@
 #include <QFileInfo>
 #include <QFileSystemModel>
 #include <QInputDialog>
+#include <QItemDelegate>
 #include <QMessageBox>
 #include <QTreeWidget>
 
@@ -20,6 +21,24 @@
 #include "cide/main_window.h"
 #include "cide/project_settings.h"
 #include "cide/util.h"
+
+class ItemDelegate : public QItemDelegate {
+ public:
+  ItemDelegate(const QFontMetrics& fontMetrics, QObject* parent = Q_NULLPTR) :
+      QItemDelegate(parent),
+      fontMetrics(fontMetrics) {}
+  
+  QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const {
+    QSize oSize = QItemDelegate::sizeHint(option, index);
+    constexpr int lineSpacing = 2;
+    oSize.setHeight(fontMetrics.ascent() + fontMetrics.descent() + lineSpacing);
+    return oSize;
+  }
+  
+ private:
+  QFontMetrics fontMetrics;
+};
+
 
 ProjectTreeView::~ProjectTreeView() {
   delete contextMenu;
@@ -54,6 +73,7 @@ void ProjectTreeView::Initialize(MainWindow* mainWindow, QAction* showProjectFil
   tree->setColumnCount(1);
   tree->setHeaderHidden(true);
   tree->setSelectionMode(QAbstractItemView::ExtendedSelection);
+  tree->setItemDelegate(new ItemDelegate(tree->fontMetrics(), tree));
   
   connect(tree, &QTreeWidget::itemExpanded, this, &ProjectTreeView::ItemExpanded);
   connect(tree, &QTreeWidget::itemCollapsed, this, &ProjectTreeView::ItemCollapsed);

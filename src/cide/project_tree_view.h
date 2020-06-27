@@ -19,6 +19,7 @@ class DockWidgetWithClosedSignal;
 class MainWindow;
 class Project;
 class QAction;
+class QItemDelegate;
 class QMenu;
 class QTreeWidgetItem;
 class TreeWidgetWithRightClickSignal;

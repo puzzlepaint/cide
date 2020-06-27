@@ -378,7 +378,7 @@ QString PrintTypeForImplementationCompletion(CXType type, const QString& current
              type.kind == CXType_LValueReference) {
     CXType pointeeType = clang_getPointeeType(type);
     if (pointeeType.kind != CXType_Invalid) {
-      return PrintTypeForImplementationCompletion(pointeeType, currentScope) + QStringLiteral("&");
+      return PrintTypeForImplementationCompletion(pointeeType, currentScope) + ((type.kind == CXType_LValueReference) ? QStringLiteral("&") : QStringLiteral("&&"));
     }
   }
   

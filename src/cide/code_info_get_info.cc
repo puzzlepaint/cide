@@ -210,7 +210,7 @@ QString PrintType(CXType type) {
              type.kind == CXType_LValueReference) {
     CXType pointeeType = clang_getPointeeType(type);
     if (pointeeType.kind != CXType_Invalid) {
-      return PrintType(pointeeType) + QStringLiteral("&");
+      return PrintType(pointeeType) + ((type.kind == CXType_LValueReference) ? QStringLiteral("&") : QStringLiteral("&&"));
     }
   }
   

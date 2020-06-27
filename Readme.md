@@ -74,9 +74,9 @@ The following build dependencies must be present:
 
 | Dependency                          | Version(s) known to work |
 | ----------------------------------- | ------------------------ |
-| [libclang](https://clang.llvm.org/) | 9.0.1                    |
-| [Qt5](https://www.qt.io/)           | 5.12.0, 5.12.3           |
-| [libgit2](https://libgit2.org/)     | 0.28.4                   |
+| [libclang](https://clang.llvm.org/) | 9.0.1, 10.0.0            |
+| [Qt5](https://www.qt.io/)           | 5.12.0, 5.12.3, 5.15.0   |
+| [libgit2](https://libgit2.org/)     | 0.28.4, 1.0.1            |
 
 The following runtime dependencies should be present:
 

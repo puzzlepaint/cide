@@ -848,8 +848,7 @@ void DocumentWidget::Cut() {
     return;
   }
   
-  QClipboard* clipboard = QGuiApplication::clipboard();
-  clipboard->setText(selectedText, QClipboard::Clipboard);
+  QGuiApplication::clipboard()->setText(selectedText, QClipboard::Clipboard);
   
   InsertText("");
 }
@@ -860,14 +859,15 @@ void DocumentWidget::Copy() {
     return;
   }
   
-  QClipboard* clipboard = QGuiApplication::clipboard();
-  clipboard->setText(selectedText, QClipboard::Clipboard);
+  QGuiApplication::clipboard()->setText(selectedText, QClipboard::Clipboard);
 }
 
 void DocumentWidget::Paste() {
-  QClipboard* clipboard = QGuiApplication::clipboard();
+  QString clipboardText = QGuiApplication::clipboard()->text(QClipboard::Clipboard);
+  // Since we only handle UNIX line endings, convert any potential Windows line endings in the pasted text
+  clipboardText.replace(QStringLiteral("\r\n"), QStringLiteral("\n"));
   // Force a new undo step for inserted text.
-  InsertText(clipboard->text(QClipboard::Clipboard), true);
+  InsertText(clipboardText, true);
 }
 
 void DocumentWidget::ToggleBookmark() {

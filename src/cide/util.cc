@@ -15,7 +15,11 @@ void SplitPathAndLineAndColumn(const QString& fullPath, QString* path, int* line
   *line = -1;
   *column = -1;
   
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+  QStringList parts = fullPath.split(':', Qt::SkipEmptyParts);
+#else
   QStringList parts = fullPath.split(':', QString::SkipEmptyParts);
+#endif
   int partsParsedAsNumbers = 0;
   if (parts.size() >= 2) {
     bool ok;

@@ -322,7 +322,7 @@ void CodeCompletionWidget::mouseDoubleClickEvent(QMouseEvent* /*event*/) {
 }
 
 void CodeCompletionWidget::wheelEvent(QWheelEvent* event) {
-  double degrees = event->delta() / 8.0;
+  double degrees = event->angleDelta().y() / 8.0;
   double numSteps = degrees / 15.0;
   
   int newYScroll = yScroll - 3 * numSteps * lineHeight;
@@ -665,7 +665,11 @@ void CodeCompletionWidget::Relayout() {
   // Get font metrics
   QFontMetrics fontMetrics(Settings::Instance().GetDefaultFont());
   lineHeight = fontMetrics.ascent() + fontMetrics.descent();
-  charWidth = fontMetrics./*horizontalAdvance*/ width(' ');
+#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
+  charWidth = fontMetrics.horizontalAdvance(' ');
+#else
+  charWidth = fontMetrics.width(' ');
+#endif
   
   // Compute good widget size and position.
   // Initialize the size with the frame size.

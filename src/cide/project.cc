@@ -397,7 +397,11 @@ bool Project::Configure(QString* errorReason, QString* warnings, QWidget* parent
   
   // Example first line output from CMake: cmake version 2.8.12.2
   QString firstLine = cmakeVersionTestProcess->readLine();
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+  QStringList versionWords = firstLine.trimmed().split(' ', Qt::SkipEmptyParts);
+#else
   QStringList versionWords = firstLine.trimmed().split(' ', QString::SkipEmptyParts);
+#endif
   if (versionWords.size() >= 3 &&
       versionWords[0] == "cmake" &&
       versionWords[1] == "version") {
@@ -447,7 +451,7 @@ bool Project::Configure(QString* errorReason, QString* warnings, QWidget* parent
   cmakeProcess->setWorkingDirectory(projectCMakeDir.path());
   std::atomic<bool> cmakeProcessFinished;
   cmakeProcessFinished = false;
-  connect(cmakeProcess.get(), QOverload<int>::of(&QProcess::finished), [&]() {
+  connect(cmakeProcess.get(), QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), [&]() {
     cmakeProcessFinished = true;
   });
   cmakeProcess->start(cmakeExecutable, arguments);
@@ -779,7 +783,11 @@ bool Project::Configure(QString* errorReason, QString* warnings, QWidget* parent
       YAML::Node compileCommandNode = settingsNode["compileCommandFragments"];
       if (compileCommandNode.IsSequence()) {
         for (int c = 0; c < compileCommandNode.size(); ++ c) {
-          QStringList fragments = QString::fromStdString(compileCommandNode[c]["fragment"].as<std::string>()).split(QChar(' '), QString::SplitBehavior::SkipEmptyParts);
+          #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+            QStringList fragments = QString::fromStdString(compileCommandNode[c]["fragment"].as<std::string>()).split(QChar(' '), Qt::SkipEmptyParts);
+          #else
+            QStringList fragments = QString::fromStdString(compileCommandNode[c]["fragment"].as<std::string>()).split(QChar(' '), QString::SplitBehavior::SkipEmptyParts);
+          #endif
           for (const QString& fragment : fragments) {
             newSettings.compileCommandFragments.emplace_back(fragment);
             // qDebug() << "- compile command fragment:" << newSettings.compileCommandFragments.back();

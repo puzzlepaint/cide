@@ -800,7 +800,7 @@ QWidget* SettingsDialog::CreateColorsCategory() {
     
     newItem = new QTableWidgetItem();
     newItem->setFlags(Qt::ItemIsEnabled);
-    newItem->setBackgroundColor(color.value);
+    newItem->setBackground(QBrush(color.value));
     newItem->setData(Qt::UserRole, row);
     colorsTable->setItem(row, 1, newItem);
   }
@@ -932,7 +932,7 @@ QWidget* SettingsDialog::CreateColorsCategory() {
     QColor result = QColorDialog::getColor(color.value, this);
     if (result.isValid()) {
       Settings::Instance().SetConfigurableColor(colorId, result.rgb());
-      colorsTable->item(item->row(), 1)->setBackgroundColor(result);
+      colorsTable->item(item->row(), 1)->setBackground(QBrush(result));
     }
   });
   
@@ -1008,9 +1008,9 @@ QWidget* SettingsDialog::CreateColorsCategory() {
     }
     QTableWidgetItem* otherItem = localColorsTable->item(item->row() - 1, 0);
     
-    QColor temp = item->textColor();
-    item->setTextColor(otherItem->textColor());
-    otherItem->setTextColor(temp);
+    QColor temp = item->foreground().color();
+    item->setForeground(QBrush(otherItem->foreground().color()));
+    otherItem->setForeground(QBrush(temp));
     
     UpdateLocalVariableColorSettings();
   });
@@ -1021,9 +1021,9 @@ QWidget* SettingsDialog::CreateColorsCategory() {
     }
     QTableWidgetItem* otherItem = localColorsTable->item(item->row() + 1, 0);
     
-    QColor temp = item->textColor();
-    item->setTextColor(otherItem->textColor());
-    otherItem->setTextColor(temp);
+    QColor temp = item->foreground().color();
+    item->setForeground(QBrush(otherItem->foreground().color()));
+    otherItem->setForeground(QBrush(temp));
     
     UpdateLocalVariableColorSettings();
   });
@@ -1032,11 +1032,11 @@ QWidget* SettingsDialog::CreateColorsCategory() {
     if (item == nullptr) {
       return;
     }
-    QColor result = QColorDialog::getColor(item->textColor(), this);
+    QColor result = QColorDialog::getColor(item->foreground().color(), this);
     if (result.isValid()) {
       Settings::Instance().SetLocalVariableColor(item->row(), result.rgb());
       Settings::Instance().SaveLocalVariableColorPool();
-      item->setTextColor(result);
+      item->setForeground(QBrush(result));
     }
   });
   connect(localColorDeleteButton, &QPushButton::clicked, [&]() {
@@ -1057,8 +1057,8 @@ QWidget* SettingsDialog::CreateColorsCategory() {
     QTableWidgetItem* newItem = new QTableWidgetItem(tr("example text"));
     newItem->setFlags(Qt::ItemIsEnabled);
     newItem->setFont(Settings::Instance().GetDefaultFont());
-    newItem->setTextColor(Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::Default).textColor);
-    newItem->setBackgroundColor(Settings::Instance().GetConfiguredColor(Settings::Color::EditorBackground));
+    newItem->setForeground(QBrush(Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::Default).textColor));
+    newItem->setBackground(QBrush(Settings::Instance().GetConfiguredColor(Settings::Color::EditorBackground)));
     localColorsTable->setItem(row, 0, newItem);
     
     UpdateLocalVariableColorSettings();
@@ -1082,7 +1082,7 @@ QWidget* SettingsDialog::CreateColorsCategory() {
     // of all items in that table to the current configured editor background color.
     if (index == 2) {
       for (int row = 0; row < localColorsTable->rowCount(); ++ row) {
-        localColorsTable->item(row, 0)->setBackgroundColor(Settings::Instance().GetConfiguredColor(Settings::Color::EditorBackground));
+        localColorsTable->item(row, 0)->setBackground(QBrush(Settings::Instance().GetConfiguredColor(Settings::Color::EditorBackground)));
       }
     }
   });
@@ -1105,10 +1105,10 @@ void SettingsDialog::UpdateTextStyleItem(QTableWidgetItem* item, const Settings:
   item->setFont(font);
   
   if (style.affectsText) {
-    item->setTextColor(style.textColor);
+    item->setForeground(QBrush(style.textColor));
   } else {
     QTableWidgetItem defaultItem;
-    item->setTextColor(defaultItem.textColor());
+    item->setForeground(QBrush(defaultItem.foreground().color()));
   }
   
   if (style.affectsBackground) {
@@ -1122,7 +1122,7 @@ void SettingsDialog::UpdateTextStyleItem(QTableWidgetItem* item, const Settings:
 void SettingsDialog::UpdateLocalVariableColorSettings() {
   std::vector<QRgb> colors(localColorsTable->rowCount());
   for (int row = 0; row < localColorsTable->rowCount(); ++ row) {
-    colors[row] = localColorsTable->item(row, 0)->textColor().rgb();
+    colors[row] = localColorsTable->item(row, 0)->foreground().color().rgb();
   }
   Settings::Instance().SetLocalVariableColors(colors);
 }
@@ -1137,8 +1137,8 @@ void SettingsDialog::UpdateLocalColorsTable() {
     QTableWidgetItem* newItem = new QTableWidgetItem(tr("example text"));
     newItem->setFlags(Qt::ItemIsEnabled);
     newItem->setFont(Settings::Instance().GetDefaultFont());
-    newItem->setTextColor(color);
-    newItem->setBackgroundColor(Settings::Instance().GetConfiguredColor(Settings::Color::EditorBackground));
+    newItem->setForeground(QBrush(color));
+    newItem->setBackground(QBrush(Settings::Instance().GetConfiguredColor(Settings::Color::EditorBackground)));
     localColorsTable->setItem(row, 0, newItem);
   }
 }

@@ -8,6 +8,9 @@
 #include <QDebug>
 #include <QDir>
 #include <QHelpEngineCore>
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+  #include <QHelpLink>
+#endif
 #include <QTimer>
 
 QtHelp::QtHelp() {
@@ -89,12 +92,21 @@ QUrl QtHelp::QueryIdentifier(const QString& identifier) {
     return QUrl();
   }
   
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+  QList<QHelpLink> links = helpEngine->documentsForIdentifier(identifier);
+  if (links.count()) {
+    return links.constBegin()->url;
+  } else {
+    return QUrl();
+  }
+#else
   QMap<QString, QUrl> links = helpEngine->linksForIdentifier(identifier);
   if (links.count()) {
     return links.constBegin().value();
   } else {
     return QUrl();
   }
+#endif
 }
 
 QByteArray QtHelp::GetFileData(const QUrl& url) {

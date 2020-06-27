@@ -1503,7 +1503,11 @@ void DocumentWidget::Moved() {
 void DocumentWidget::FontChanged() {
   fontMetrics.reset(new QFontMetrics(Settings::Instance().GetDefaultFont()));
   lineHeight = fontMetrics->ascent() + fontMetrics->descent();
-  charWidth = fontMetrics->/*horizontalAdvance*/ width(' ');
+#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
+  charWidth = fontMetrics->horizontalAdvance(' ');
+#else
+  charWidth = fontMetrics->width(' ');
+#endif
 }
 
 bool DocumentWidget::CheckRelayout() {

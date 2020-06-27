@@ -1267,10 +1267,10 @@ void MainWindow::ProgramStackTraceUpdated() {
       // Keep default background color
     } else if (hasFilePath) {
       // File has a path, but is not in the project --> darken a bit
-      newItem->setBackgroundColor(qRgb(220, 220, 220));
+      newItem->setBackground(QBrush(qRgb(220, 220, 220)));
     } else {
       // File does not even have a path --> darken more
-      newItem->setBackgroundColor(qRgb(190, 190, 190));
+      newItem->setBackground(QBrush(qRgb(190, 190, 190)));
     }
     
     stackFramesList->addItem(newItem);

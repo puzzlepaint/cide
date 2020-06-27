@@ -201,6 +201,14 @@ Document::CharacterIterator::CharacterIterator(const CharacterIterator& other)
       blockStartOffset(other.blockStartOffset),
       charInBlockIndex(other.charInBlockIndex) {}
 
+Document::CharacterIterator& Document::CharacterIterator::operator= (const CharacterIterator& other) {
+  document = other.document;
+  blockIndex = other.blockIndex;
+  blockStartOffset = other.blockStartOffset;
+  charInBlockIndex = other.charInBlockIndex;
+  return *this;
+}
+
 bool Document::CharacterIterator::IsValid() const {
   return blockIndex >= 0 && blockIndex < document->mBlocks.size();
 }
@@ -274,6 +282,17 @@ Document::CharacterAndStyleIterator::CharacterAndStyleIterator(const CharacterAn
       charInBlockIndex(other.charInBlockIndex),
       styleInBlockIndex{other.styleInBlockIndex[0], other.styleInBlockIndex[1]},
       styleChanged(other.styleChanged) {}
+
+Document::CharacterAndStyleIterator& Document::CharacterAndStyleIterator::operator= (const CharacterAndStyleIterator& other) {
+  document = other.document;
+  blockIndex = other.blockIndex;
+  blockStartOffset = other.blockStartOffset;
+  charInBlockIndex = other.charInBlockIndex;
+  styleInBlockIndex[0] = other.styleInBlockIndex[0];
+  styleInBlockIndex[1] = other.styleInBlockIndex[1];
+  styleChanged = other.styleChanged;
+  return *this;
+}
 
 bool Document::CharacterAndStyleIterator::IsValid() const {
   return blockIndex >= 0 && blockIndex < document->mBlocks.size();

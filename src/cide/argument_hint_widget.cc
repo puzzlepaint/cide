@@ -95,7 +95,11 @@ void ArgumentHintWidget::Relayout() {
   // Get font metrics
   QFontMetrics fontMetrics(Settings::Instance().GetDefaultFont());
   lineHeight = fontMetrics.ascent() + fontMetrics.descent();
-  charWidth = fontMetrics./*horizontalAdvance*/ width(' ');
+#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
+  charWidth = fontMetrics.horizontalAdvance(' ');
+#else
+  charWidth = fontMetrics.width(' ');
+#endif
   
   // Compute good widget size and position.
   // Initialize the size with the frame size.

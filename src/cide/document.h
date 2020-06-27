@@ -260,6 +260,7 @@ class Document : public QObject {
     CharacterIterator(Document* document);
     CharacterIterator(Document* document, int characterOffset);
     CharacterIterator(const CharacterIterator& other);
+    CharacterIterator& operator= (const CharacterIterator& other);
     
     bool IsValid() const;
     
@@ -295,6 +296,7 @@ class Document : public QObject {
     CharacterAndStyleIterator(Document* document);
     CharacterAndStyleIterator(Document* document, int characterOffset);
     CharacterAndStyleIterator(const CharacterAndStyleIterator& other);
+    CharacterAndStyleIterator& operator= (const CharacterAndStyleIterator& other);
     
     bool IsValid() const;
     /// Returns whether the current style has changed in the last increment or

@@ -105,7 +105,11 @@ void SearchBar::paintEvent(QPaintEvent *event) {
     painter.setPen(qRgb(50, 50, 50));
     painter.setFont(Settings::Instance().GetDefaultFont());
     bool usingBoldFont = false;
-    int charWidth = painter.fontMetrics()./*horizontalAdvance*/ width(' ');
+#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
+  int charWidth = painter.fontMetrics().horizontalAdvance(' ');
+#else
+  int charWidth = painter.fontMetrics().width(' ');
+#endif
     
     constexpr int leftMargin = 7;  // TODO: This was read off from a screenshot. How to find this in a portable way?
     int xCoord = leftMargin;

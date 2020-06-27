@@ -766,13 +766,13 @@ void ProjectTreeView::ApplyItemStyles(QTreeWidgetItem* item, const QString& cano
   // Apply styles.
   auto applyStyle = [&](const Settings::ConfigurableTextStyle& style, bool force = false) {
     if (style.affectsText || force) {
-      item->setTextColor(0, style.textColor);
+      item->setForeground(0, QBrush(style.textColor));
       QFont font = item->font(0);
       font.setBold(style.bold);
       item->setFont(0, font);
     }
     if (style.affectsBackground || force) {
-      item->setBackgroundColor(0, style.backgroundColor);
+      item->setBackground(0, QBrush(style.backgroundColor));
     }
   };
   
@@ -793,10 +793,10 @@ void ProjectTreeView::ApplyItemStyles(QTreeWidgetItem* item, const QString& cano
 
 void ProjectTreeView::SetProjectMayRequireReconfiguration(QTreeWidgetItem* item, bool enable) {
   if (enable) {
-    item->setBackgroundColor(0, projectNeedingReconfigurationColor);
+    item->setBackground(0, QBrush(projectNeedingReconfigurationColor));
     item->setToolTip(0, tr("A CMake file of this project changed, thus it may require reconfiguration to be up-to-date."));
   } else {
-    item->setBackgroundColor(0, qRgb(255, 255, 255));
+    item->setBackground(0, QBrush(qRgb(255, 255, 255)));
     item->setToolTip(0, QStringLiteral(""));
   }
 }

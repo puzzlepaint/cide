@@ -150,7 +150,7 @@ void CrashBackup::Exit() {
 CrashBackup::CrashBackup() {
   QString backupPath = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
   QDir dir(backupPath);
-  dir = dir.filePath("cide_backup");
+  dir.setPath(dir.filePath("cide_backup"));
   dir.mkpath(".");
   backupDir = dir.path();
   

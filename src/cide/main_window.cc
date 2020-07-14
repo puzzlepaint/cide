@@ -804,7 +804,9 @@ void MainWindow::ParseIssuesForCurrentFile() {
     }
   }
   
-  progress.hide();
+  // Hide the progress dialog (progress.hide() does not work)
+  progress.setMaximum(1);
+  progress.setValue(1);
   
   // Get all parse diagnostics.
   QString issuesString = QStringLiteral("");

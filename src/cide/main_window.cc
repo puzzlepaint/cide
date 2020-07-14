@@ -1875,6 +1875,8 @@ void MainWindow::CurrentTabChanged(int /*index*/) {
   if (tabData) {
     documentLayout->setCurrentWidget(tabData->container);
     
+    tabData->widget->setFocus(Qt::OtherFocusReason);
+    
     // Try to have the search bar always behind the current editor widget. This
     // is an attempt to avoid the problem that sometimes, when the focus went
     // away from other widgets (e.g., the find bar, or the stop button for

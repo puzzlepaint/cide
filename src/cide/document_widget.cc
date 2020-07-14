@@ -783,9 +783,22 @@ void DocumentWidget::ShowRightClickMenu(const QString& clickedCursorUSR, const Q
 }
 
 void DocumentWidget::RenameClickedItem() {
+  // Sometimes, libclang does not return a token spelling, but the ranges to rename
+  // are still found correctly. For these cases, try to find the token spelling ourselves.
+  // This happens with: "int variable| = 42;" when pressing the rename hotkey at the "|".
+  if (rightClickedTokenSpelling.isEmpty()) {
+    DocumentLocation cursorLoc = MapCursorToDocument();
+    Document::CharacterIterator it(document.get(), cursorLoc.offset);
+    if (it.IsValid() && !IsWhitespace(it.GetChar())) {
+      rightClickedTokenSpelling = document->TextForRange(GetWordForCharacter(cursorLoc.offset));
+    } else if (cursorLoc.offset > 0) {
+      rightClickedTokenSpelling = document->TextForRange(GetWordForCharacter(cursorLoc.offset - 1));
+    }
+  }
+  
   // Initialize the cursor / selection in the rename dialog to match the cursor / selection
   // in this DocumentWidget.
-  DocumentRange initialCursorOrSelectionRange = DocumentRange(0, rightClickedTokenSpelling.size());
+  DocumentRange initialCursorOrSelectionRange;
   if (selection.IsEmpty()) {
     DocumentLocation cursorLoc = MapCursorToDocument();
     int cursorOffsetWithinToken = std::max(0, std::min(rightClickedTokenSpelling.size(), cursorLoc.offset - rightClickedTokenRange.start.offset));

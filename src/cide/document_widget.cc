@@ -1118,7 +1118,7 @@ void DocumentWidget::FixAll() {
   // Sort the problems by the (start of the) range of their fix-it
   std::vector<std::shared_ptr<Problem>> sortedProblems(uniqueTrivialProblems.size());
   int index = 0;
-  for (const std::shared_ptr<Problem> problem : uniqueTrivialProblems) {
+  for (const std::shared_ptr<Problem>& problem : uniqueTrivialProblems) {
     sortedProblems[index] = problem;
     ++ index;
   }

@@ -459,23 +459,16 @@ DocumentRange DocumentWidget::GetWordForCharacter(int characterOffset) {
 }
 
 void DocumentWidget::SetSelection(const DocumentRange& range, bool placeCursorAtEnd, bool ensureCursorIsVisible) {
-  // NOTE: EndMovingCursor() may also modify the selection (without calling this
-  //       function).
+  // NOTE: EndMovingCursor() may also modify the selection (without calling this function).
   
-  selection = range;
+  selection = DocumentRange::Invalid();
   if (!range.IsInvalid()) {
+    preSelectionCursor = placeCursorAtEnd ? range.start : range.end;
+    SetCursorTo(preSelectionCursor);
     StartMovingCursor();
     SetCursorTo(placeCursorAtEnd ? range.end : range.start);
-    EndMovingCursor(false, true, ensureCursorIsVisible);
+    EndMovingCursor(true, false, ensureCursorIsVisible);
   }
-  preSelectionCursor = placeCursorAtEnd ? range.start : range.end;
-  
-  // Check whether a whole word or phrase is selected. If yes, highlight all
-  // occurrences of it.
-  RemoveHighlights();
-  CheckPhraseHighlight();
-  
-  update(GetTextRect(selection));
 }
 
 void DocumentWidget::CloseCodeCompletion() {

@@ -93,8 +93,10 @@ std::vector<QByteArray> CompileSettings::BuildCommandLineArgs(bool enableSpellCh
     // NOTE: The correct approach might be to do two passes, one with
     //       --cuda-host-only and one with --cuda-device-only (and only one
     //       architecture specified).
-  } else if (filePath.endsWith(".h")) {
+  } else if (filePath.endsWith(".h") || filePath.endsWith(".inl")) {
     // On Windows, we need to force libclang into C++ mode for .h files.
+    // In addition, we also need to do the same for .inl files on every platform,
+    // since it returns an "AST read error" otherwise when attempting to parse them.
     if (language == Language::CXX) {
       commandLineArgs.emplace_back("-xc++");
     } else if (language == Language::C) {

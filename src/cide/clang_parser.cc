@@ -409,7 +409,7 @@ void ParseAndOrIndexFileImpl(QString canonicalPath, Document* document, MainWind
       });
     }
     return;
-  } else if (parseResult == CXError_Failure || parseResult != CXError_Success) {
+  } else if (parseResult != CXError_Success) {
     if (document) {
       RunInQtThreadBlocking([&]() {
         DocumentWidget* widget = mainWindow->GetWidgetForDocument(document);
@@ -419,7 +419,7 @@ void ParseAndOrIndexFileImpl(QString canonicalPath, Document* document, MainWind
               parseSettingsAreGuessedNotification);
           widget->GetContainer()->SetMessage(
               DocumentWidgetContainer::MessageType::ParseNotification,
-              parseNotification + QObject::tr("\nAn unspecified parse error has occurred."));
+              parseNotification + QObject::tr("\nA libclang parse error has occurred (libclang CXErrorCode: %1).").arg(static_cast<int>(parseResult)));
         }
         document->GetTUPool()->PutTU(TU, false);
       });

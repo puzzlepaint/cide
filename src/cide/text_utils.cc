@@ -32,6 +32,7 @@ void InitializeSymbolArray() {
   DefineAsSymbol('%');
   DefineAsSymbol('"');
   DefineAsSymbol('\'');
+  DefineAsSymbol('`');
   DefineAsSymbol(';');
   DefineAsSymbol(':');
   DefineAsSymbol(',');

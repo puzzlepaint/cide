@@ -261,7 +261,7 @@ class Settings : public QObject {
     #elif __APPLE__
       defaultFontSize = 16;
     #endif
-    return QSettings().value("font_size", defaultFontSize).toFloat();
+    return settings.value("font_size", defaultFontSize).toFloat();
   }
   
   inline const QFont& GetDefaultFont() const {
@@ -273,44 +273,44 @@ class Settings : public QObject {
   }
   
   inline QString GetDefaultCompiler() const {
-    return QSettings().value("default_compiler").toString();
+    return settings.value("default_compiler").toString();
   }
   
   inline QString GetGDBPath() const {
-    return QSettings().value("gdb_path", "gdb").toString();
+    return settings.value("gdb_path", "gdb").toString();
   }
   
-  inline bool GetUsePerVariableColoring() {
-    return QSettings().value("per_variable_coloring", true).toBool();
+  inline bool GetUsePerVariableColoring() const {
+    return settings.value("per_variable_coloring", true).toBool();
   }
   
-  inline bool GetHighlightCurrentLine() {
-    return QSettings().value("highlight_current_line", true).toBool();
+  inline bool GetHighlightCurrentLine() const {
+    return settings.value("highlight_current_line", true).toBool();
   }
   
-  inline bool GetHighlightTrailingSpaces() {
-    return QSettings().value("highlight_trailing_spaces", true).toBool();
+  inline bool GetHighlightTrailingSpaces() const {
+    return settings.value("highlight_trailing_spaces", true).toBool();
   }
   
-  inline bool GetDarkenNonContextRegions() {
-    return QSettings().value("darken_non_context_regions", true).toBool();
+  inline bool GetDarkenNonContextRegions() const {
+    return settings.value("darken_non_context_regions", true).toBool();
   }
   
-  inline bool GetSourceLeftOfHeaderOrdering() {
-    return QSettings().value("source_left_of_header", true).toBool();
+  inline bool GetSourceLeftOfHeaderOrdering() const {
+    return settings.value("source_left_of_header", true).toBool();
   }
   
-  inline bool GetShowColumnMarker() {
-    return QSettings().value("show_column_marker", false).toBool();
+  inline bool GetShowColumnMarker() const {
+    return settings.value("show_column_marker", false).toBool();
   }
   
-  inline int GetColumnMarkerPosition() {
-    return QSettings().value("column_marker_position", 80).toInt();
+  inline int GetColumnMarkerPosition() const {
+    return settings.value("column_marker_position", 80).toInt();
   }
   
-  inline QStringList GetCommentMarkers() {
+  inline QStringList GetCommentMarkers() const {
     static QStringList defaultCommentMarkers = {"TODO", "FIXME", "TEST", "HACK", "END"};
-    return QSettings().value("comment_markers", defaultCommentMarkers).toStringList();
+    return settings.value("comment_markers", defaultCommentMarkers).toStringList();
   }
   
   inline const std::vector<WordCompletion>& GetWordCompletions() {
@@ -318,7 +318,6 @@ class Settings : public QObject {
       return wordCompletions;
     }
     
-    QSettings settings;
     if (!settings.value("word_completions_written").toBool()) {
       // Return default word completions.
       static std::vector<WordCompletion> defaultCompletions = {
@@ -366,61 +365,60 @@ class Settings : public QObject {
   
   inline CodeCompletionConfirmationKeys GetCodeCompletionConfirmationKeys() const {
     return static_cast<CodeCompletionConfirmationKeys>(
-        QSettings().value("code_completion_confirmation_keys", static_cast<int>(CodeCompletionConfirmationKeys::TabAndReturn)).toInt());
+        settings.value("code_completion_confirmation_keys", static_cast<int>(CodeCompletionConfirmationKeys::TabAndReturn)).toInt());
   }
   
   static void ShowSettingsWindow(QWidget* parent = nullptr);
   
  public slots:
-  inline void SetFontSize(float size) const {
-    QSettings().setValue("font_size", size);
+  inline void SetFontSize(float size) {
+    settings.setValue("font_size", size);
   }
   
   inline void SetDefaultCompiler(const QString& path) {
-    QSettings().setValue("default_compiler", path);
+    settings.setValue("default_compiler", path);
   }
   
-  inline void SetGDBPath(const QString& path) const {
-    QSettings().setValue("gdb_path", path);
+  inline void SetGDBPath(const QString& path) {
+    settings.setValue("gdb_path", path);
   }
   
   inline void SetUsePerVariableColoring(bool enable) {
-    QSettings().setValue("per_variable_coloring", enable);
+    settings.setValue("per_variable_coloring", enable);
   }
   
   inline void SetHighlightCurrentLine(bool enable) {
-    QSettings().setValue("highlight_current_line", enable);
+    settings.setValue("highlight_current_line", enable);
   }
   
   inline void SetHighlightTrailingSpaces(bool enable) {
-    QSettings().setValue("highlight_trailing_spaces", enable);
+    settings.setValue("highlight_trailing_spaces", enable);
   }
   
   inline void SetDarkenNonContextRegions(bool enable) {
-    QSettings().setValue("darken_non_context_regions", enable);
+    settings.setValue("darken_non_context_regions", enable);
   }
   
   inline void SetSourceLeftOfHeaderOrdering(bool enable) {
-    QSettings().setValue("source_left_of_header", enable);
+    settings.setValue("source_left_of_header", enable);
   }
   
   inline void SetShowColumnMarker(bool enable) {
-    QSettings().setValue("show_column_marker", enable);
+    settings.setValue("show_column_marker", enable);
   }
   
   inline void SetColumnMarkerPosition(int position) {
-    QSettings().setValue("column_marker_position", position);
+    settings.setValue("column_marker_position", position);
   }
   
   inline void SetCommentMarkers(const QStringList& markers) {
-    QSettings().setValue("comment_markers", markers);
+    settings.setValue("comment_markers", markers);
   }
   
   inline void SetWordCompletions(const std::vector<WordCompletion>& completions) {
     wordCompletionsLookedUp = true;
     wordCompletions = completions;
     
-    QSettings settings;
     settings.beginWriteArray("word_completions", wordCompletions.size());
     for (int i = 0; i < wordCompletions.size(); ++ i) {
       settings.setArrayIndex(i);
@@ -435,7 +433,7 @@ class Settings : public QObject {
   }
   
   inline void SetCodeCompletionConfirmationKeys(CodeCompletionConfirmationKeys keys) {
-    QSettings().setValue("code_completion_confirmation_keys", static_cast<int>(keys));
+    settings.setValue("code_completion_confirmation_keys", static_cast<int>(keys));
   }
   
  signals:
@@ -443,6 +441,8 @@ class Settings : public QObject {
   
  private:
   Settings();
+  
+  QSettings settings;
   
   QFont defaultFont;
   QFont boldFont;

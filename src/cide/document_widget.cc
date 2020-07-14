@@ -464,7 +464,11 @@ void DocumentWidget::SetSelection(const DocumentRange& range, bool placeCursorAt
   selection = DocumentRange::Invalid();
   if (!range.IsInvalid()) {
     preSelectionCursor = placeCursorAtEnd ? range.start : range.end;
+    
+    StartMovingCursor();
     SetCursorTo(preSelectionCursor);
+    EndMovingCursor(false, false, false);
+    
     StartMovingCursor();
     SetCursorTo(placeCursorAtEnd ? range.end : range.start);
     EndMovingCursor(true, false, ensureCursorIsVisible);

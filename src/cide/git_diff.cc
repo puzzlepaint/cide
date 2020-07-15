@@ -191,7 +191,6 @@ void GitDiff::CreateDiff(const DiffRequest& request) {
   QByteArray documentTextUtf8;
   int documentNumLines;
   QString documentPath;
-  QString projectPath;
   int documentVersion;
   
   bool exit = false;
@@ -206,34 +205,20 @@ void GitDiff::CreateDiff(const DiffRequest& request) {
     documentNumLines = request.document->LineCount();
     documentPath = request.document->path();
     documentVersion = request.document->version();
-    
-    for (const auto& project : request.mainWindow->GetProjects()) {
-      if (project->ContainsFileOrInclude(request.document->path())) {
-        projectPath = QFileInfo(project->GetYAMLFilePath()).dir().path();
-        break;
-      }
-    }
   });
   if (exit) {
     return;
   }
   
-  int gitOpenFlags = GIT_REPOSITORY_OPEN_NO_SEARCH;
-  if (projectPath.isEmpty() ||
-      !documentPath.startsWith(projectPath)) {
-    gitOpenFlags = 0;
-    projectPath = QFileInfo(documentPath).dir().path();
-  }
-  
   // Open repository
   git_repository* repo = nullptr;
-  int result = git_repository_open_ext(&repo, projectPath.toLocal8Bit(), gitOpenFlags, nullptr);
+  int result = git_repository_open_ext(&repo, QFileInfo(documentPath).dir().path().toLocal8Bit(), 0, nullptr);
   std::shared_ptr<git_repository> repo_deleter(repo, [&](git_repository* repo){ git_repository_free(repo); });
   if (result == GIT_ENOTFOUND) {
     // There is no git repository at the project path.
     return;
   } else if (result != 0) {
-    qDebug() << "Failed to open the git repository at" << projectPath << "(some possible reasons: repo corruption or system errors)";
+    qDebug() << "Failed to open the git repository for file" << QFileInfo(documentPath).dir().path() << "(some possible reasons: repo corruption or system errors)";
     return;
   }
   

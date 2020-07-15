@@ -686,7 +686,8 @@ TEST(Project, Reconfigure) {
   QString warnings;
   bool result;
   RunInQtThreadBlocking([&]() {
-    result = project->Configure(&errorReason, &warnings, nullptr);
+    bool errorDisplayedAlready;
+    result = project->Configure(&errorReason, &warnings, &errorDisplayedAlready, nullptr);
   });
   if (!result) {
     qDebug() << "Reconfiguring failed, error reason given is:" << errorReason;

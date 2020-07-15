@@ -414,9 +414,10 @@ bool MainWindow::LoadProject(const QString& path, QWidget* parent) {
   
   // Configure the project
   QString errorReason;
+  bool errorDisplayedAlready;
   QString warnings;
-  if (!newProject->Configure(&errorReason, &warnings, parent)) {
-    if (isVisible()) {
+  if (!newProject->Configure(&errorReason, &warnings, &errorDisplayedAlready, parent)) {
+    if (isVisible() && !errorDisplayedAlready) {
       QMessageBox::warning(parent, tr("Error"), tr("The project failed to configure. Reason:\n\n%1").arg(errorReason));
     }
     return true;
@@ -677,8 +678,11 @@ void MainWindow::Reconfigure() {
 void MainWindow::ReconfigureProject(const std::shared_ptr<Project>& project, QWidget* parent) {
   QString errorReason;
   QString warnings;
-  if (!project->Configure(&errorReason, &warnings, parent)) {
-    QMessageBox::warning(parent, tr("Error"), tr("The project failed to configure. Reason:\n\n%1").arg(errorReason));
+  bool errorDisplayedAlready;
+  if (!project->Configure(&errorReason, &warnings, &errorDisplayedAlready, parent)) {
+    if (!errorDisplayedAlready) {
+      QMessageBox::warning(parent, tr("Error"), tr("The project failed to configure. Reason:\n\n%1").arg(errorReason));
+    }
     return;
   }
   if (!warnings.isEmpty()) {

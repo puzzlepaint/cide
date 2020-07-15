@@ -154,7 +154,7 @@ class Project : public QObject {
   
   /// Attempts to get the required information for correct code parsing from the
   /// build system. Returns true if successful, false otherwise.
-  bool Configure(QString* errorReason, QString* warnings, QWidget* parent);
+  bool Configure(QString* errorReason, QString* warnings, bool* errorDisplayedAlready, QWidget* parent);
   
   /// Requests indexing for all source files (which will happen in the
   /// background parse threads). Returns the number of requests created.

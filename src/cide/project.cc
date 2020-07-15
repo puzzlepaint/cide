@@ -7,8 +7,8 @@
 #include <fstream>
 
 #include <QMessageBox>
+#include <QPlainTextEdit>
 #include <QProcess>
-#include <QProgressDialog>
 #include <QtDebug>
 #include <yaml-cpp/yaml.h>
 
@@ -362,9 +362,11 @@ bool Project::Save(const QString& path) {
   return true;
 }
 
-bool Project::Configure(QString* errorReason, QString* warnings, QWidget* parent) {
+bool Project::Configure(QString* errorReason, QString* warnings, bool* errorDisplayedAlready, QWidget* parent) {
   // This uses the CMake file API. See:
   // https://cmake.org/cmake/help/latest/manual/cmake-file-api.7.html
+  
+  *errorDisplayedAlready = false;
   
   // Clear watcher.
   if (!cmakeFileWatcher.files().isEmpty()) {
@@ -424,15 +426,7 @@ bool Project::Configure(QString* errorReason, QString* warnings, QWidget* parent
     QMessageBox::warning(parent, tr("Cannot determine CMake version"), tr("Failed to parse the CMake version, thus cannot determine whether it is supported by CIDE. Continuing, but be aware that building might not work. The first line in the output of cmake --version is: %1").arg(firstLine));
   }
   
-  // Start the progress dialog. It seems that this interferes with the QMessageBoxes that might be shown
-  // above, so only do it after this point.
-  QProgressDialog progress(tr("Configuring the project ..."), tr("Abort"), 0, 0, parent);
-  progress.setMinimumDuration(200);
-  progress.setValue(0);
-  progress.setWindowModality(Qt::WindowModal);
-  
-  // Run CMake
-  std::shared_ptr<QProcess> cmakeProcess(new QProcess());
+  // Determine the arguments to pass to CMake
   QStringList arguments;
 #ifdef WIN32
   // On Windows, we force the use of the Ninja generator for new build directories, since
@@ -450,33 +444,108 @@ bool Project::Configure(QString* errorReason, QString* warnings, QWidget* parent
 #endif
   arguments << projectDir.absolutePath();
   // qDebug() << "CMake call:" << cmakeExecutable << arguments;
+  
+  // Start the progress dialog. Not sure, but this might potentially interfere with the QMessageBoxes that might be shown
+  // above, so only do it after this point.
+  QDialog progress(parent);
+  progress.setWindowModality(Qt::WindowModal);
+  
+  QString cmakeCall = cmakeExecutable + QStringLiteral(" ") + arguments.join(' ');
+  QLabel* progressLabel = new QLabel(tr("Configuring the project. Running:<br/><b>%1</b>").arg(cmakeCall.toHtmlEscaped()));
+  QProgressBar* progressBar = new QProgressBar();
+  progressBar->setRange(0, 0);  // use the undetermined progress state display
+  QPlainTextEdit* outputDisplay = new QPlainTextEdit();
+  QLabel* progressStateLabel = new QLabel();
+  QPushButton* abortButton = new QPushButton(tr("Abort"));
+  
+  QVBoxLayout* progressLayout = new QVBoxLayout();
+  progressLayout->addWidget(progressLabel);
+  progressLayout->addWidget(progressBar);
+  progressLayout->addWidget(outputDisplay, 1);
+  progressLayout->addWidget(progressStateLabel);
+  progressLayout->addWidget(abortButton);
+  progress.setLayout(progressLayout);
+  
+  bool operationWasCanceled = false;
+  connect(abortButton, &QPushButton::clicked, [&]() {
+    operationWasCanceled = true;
+  });
+  
+  progress.resize(std::max(800, progress.width()), std::max(600, progress.height()));
+  progress.show();
+  QCoreApplication::processEvents();
+  
+  // Run CMake
+  std::shared_ptr<QProcess> cmakeProcess(new QProcess());
   cmakeProcess->setWorkingDirectory(projectCMakeDir.path());
+  
+  // Set cmakeProcessFinished to true upon receiving the QProcess::finished signal
   std::atomic<bool> cmakeProcessFinished;
   cmakeProcessFinished = false;
   connect(cmakeProcess.get(), QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), [&]() {
     cmakeProcessFinished = true;
   });
+  
+  // Append process output to outputDisplay
+  // TODO: The user might want to read the configure output in general. Maybe it could be shown in a
+  //       dock widget on the bottom (the compile output widget?) after the configuration was successful?
+  //       Or keep the progress dialog open after configuration finishes, until it is closed manually?
+  QString outputHtml;
+  QString errorOutput;
+  connect(cmakeProcess.get(),
+          &QProcess::readyReadStandardOutput,
+          [&]() {
+    QString newOutput = cmakeProcess->readAllStandardOutput();
+    outputHtml += newOutput.toHtmlEscaped().replace("\n", "<br/>");
+    outputDisplay->clear();
+    outputDisplay->appendHtml(outputHtml);
+  });
+  connect(cmakeProcess.get(),
+          &QProcess::readyReadStandardError,
+          [&]() {
+    QString text = cmakeProcess->readAllStandardError();
+    errorOutput += text;
+    outputHtml += QStringLiteral("<span style='color:#ff2222'>") + text.toHtmlEscaped().replace("\n", "<br/>") + QStringLiteral("</span>");
+    outputDisplay->clear();
+    outputDisplay->appendHtml(outputHtml);
+  });
+  
+  // Start the CMake process and wait for it to end or to be aborted
   cmakeProcess->start(cmakeExecutable, arguments);
   
   QEventLoop eventLoop;
   while (!cmakeProcessFinished) {
-    progress.setValue(0);
     eventLoop.processEvents();
-    QThread::msleep(10);
-    if (progress.wasCanceled()) {
+    QThread::msleep(1);
+    if (operationWasCanceled) {
       cmakeProcess->kill();
       *errorReason = QObject::tr("The process was canceled by the user.");
       return false;
     }
   }
   
-  if (cmakeProcess->exitStatus() != QProcess::NormalExit) {
-    *errorReason = QObject::tr("The CMake process exited abnormally.");
-    return false;
-  }
-  if (cmakeProcess->exitCode() != 0) {
-    cmakeProcess->setReadChannel(QProcess::StandardError);
-    *errorReason = QObject::tr("The CMake process exited with exit code: %1. Process output:\n\n%2").arg(cmakeProcess->exitCode()).arg(QString::fromLocal8Bit(cmakeProcess->readAll()));
+  if (cmakeProcess->exitStatus() != QProcess::NormalExit ||
+      cmakeProcess->exitCode() != 0) {
+    QString errorString =
+        (cmakeProcess->exitStatus() != QProcess::NormalExit) ?
+        QObject::tr("The CMake process exited abnormally.") :
+        QObject::tr("The CMake process exited with exit code: %1.").arg(cmakeProcess->exitCode());
+    QString errorDetailsString =
+        (cmakeProcess->exitStatus() != QProcess::NormalExit) ?
+        "" :
+        QObject::tr("Process error output:\n\n%1").arg(errorOutput);
+    
+    progressStateLabel->setText(QStringLiteral("<span style='color:#ff2222'><b>%1</b></span>").arg(errorString.toHtmlEscaped()));
+    abortButton->setText(QObject::tr("Close"));
+    progressBar->setRange(0, 1);
+    progressBar->setValue(1);
+    while (!operationWasCanceled) {
+      eventLoop.processEvents();
+      QThread::msleep(1);
+    }
+    
+    *errorDisplayedAlready = true;
+    *errorReason = errorString + (errorDetailsString.isEmpty() ? "" : (" " + errorDetailsString));
     return false;
   }
   cmakeProcess.reset();

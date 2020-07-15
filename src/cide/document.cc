@@ -836,6 +836,7 @@ void Document::Replace(const DocumentRange& range, const QString& newText, bool 
           replacement.range.end = range.start + newText.size();
           mergedUndoStep = true;
         } else if (!replacement.text.isEmpty() &&
+                   replacement.range.start == replacement.range.end &&
                    replacement.range.end == range.start &&
                    newText.isEmpty()) {
           // Merge two removals (old removal at new range start)
@@ -844,6 +845,7 @@ void Document::Replace(const DocumentRange& range, const QString& newText, bool 
           replacement.text = replacement.text + oldText;
           mergedUndoStep = true;
         } else if (!replacement.text.isEmpty() &&
+                   replacement.range.start == replacement.range.end &&
                    replacement.range.end == range.end &&
                    newText.isEmpty()) {
           // Merge two removals (old removal at new range end)

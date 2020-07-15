@@ -604,6 +604,7 @@ CXChildVisitResult VisitClangAST_AddHighlightingAndContexts(CXCursor cursor, CXC
     
     // Try to find the name within the displayName (TODO: Is there any way to do this without heuristics?).
     int namePos = -1;
+    int namePosScore = -1;
     if (!name.isEmpty()) {
       int from = 0;
       while (from + name.size() <= displayName.size()) {
@@ -612,11 +613,19 @@ CXChildVisitResult VisitClangAST_AddHighlightingAndContexts(CXCursor cursor, CXC
           break;
         }
         
-        namePos = pos;
-        // If the match seems to be good, stop looking for other matches
+        // Score this match and store it as the current best match if better than previous score
+        int score = 0;
         if (pos > 0 && (displayName[pos - 1] == ' ' || displayName[pos - 1] == ':')) {
-          break;
+          ++ score;
         }
+        if (pos + name.size() < displayName.size() && (displayName[pos + name.size()] == ':' || displayName[pos + name.size()] == '(')) {
+          ++ score;
+        }
+        if (score > namePosScore) {
+          namePosScore = score;
+          namePos = pos;
+        }
+        
         from = pos + name.size();
       }
     }

@@ -106,7 +106,7 @@ StartupDialog::StartupDialog(MainWindow* mainWindow, QWidget* parent)
   newProjectButton->setFocus();
   
   // Ensure that the dialog has a reasonable starting size
-  resize(std::max(640, width()), height());
+  resize(std::max(800, width()), height());
   
   
   // --- Connections ---

@@ -1509,8 +1509,9 @@ void MainWindow::TryParseBuildStdout() {
       hasBeenParsed = true;
     }
     
-    // Ignore "collect2: error: ld returned 1 exit status"
+    // Directly parse "collect2: error: ld returned 1 exit status"
     if (!hasBeenParsed && line == QStringLiteral("collect2: error: ld returned 1 exit status")) {
+      AddBuildIssue(QStringLiteral("<b>%1</b>").arg(line.trimmed().toHtmlEscaped()), true);
       hasBeenParsed = true;
     }
     
@@ -1642,7 +1643,7 @@ void MainWindow::ParseBuildOutputForError(const QString& line) {
         int openingBracePos = line.lastIndexOf('(', errorOrWarningStringPos - 2);
         if (openingBracePos >= 0) {
           int commaPos = line.indexOf(',', openingBracePos + 1);
-          if (commaPos >= 0) {
+          if (commaPos >= 0 && commaPos < errorOrWarningStringPos) {
             bool ok;
             lineNumber = line.midRef(openingBracePos + 1, commaPos - openingBracePos - 1).toInt(&ok);
             if (ok) {
@@ -1651,6 +1652,15 @@ void MainWindow::ParseBuildOutputForError(const QString& line) {
                 path = line.left(openingBracePos);
                 problemText = line.mid(errorOrWarningStringPos + prefixLen);
               }
+            }
+          } else {
+            // The output seems to be in nvcc format (like clang-cl, but without the column number)
+            bool ok;
+            lineNumber = line.midRef(openingBracePos + 1, errorOrWarningStringPos - 1 - openingBracePos - 1).toInt(&ok);
+            if (ok) {
+              columnNumber = 1;
+              path = line.left(openingBracePos);
+              problemText = line.mid(errorOrWarningStringPos + prefixLen);
             }
           }
         }

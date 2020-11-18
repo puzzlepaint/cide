@@ -45,6 +45,11 @@ class DocumentWidget : public QWidget {
   void SetCursor(int x, int y, bool addToSelection, bool ensureCursorIsVisible = true);
   void SetCursor(const DocumentLocation& location, bool addToSelection, bool ensureCursorIsVisible = true);
   
+  /// Returns the current cursor position, clamped to the line length.
+  /// This is where the cursor is displayed.
+  /// (The actual cursor position might be at a virtual position beyond the line's end.)
+  void GetCursor(int* line, int* column);
+  
   /// Wraps Document::Replace(), while additionally adapting the cursor position
   /// to the inserted text.
   void Replace(const DocumentRange& range, const QString& newText, bool createUndoStep = true, Replacement* undoReplacement = nullptr);

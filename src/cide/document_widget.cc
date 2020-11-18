@@ -245,6 +245,13 @@ void DocumentWidget::SetCursor(const DocumentLocation& location, bool addToSelec
   EndMovingCursor(addToSelection, false, ensureCursorIsVisible);
 }
 
+void DocumentWidget::GetCursor(int* line, int* column) {
+  CheckRelayout();
+  
+  *line = cursorLine;
+  *column = std::min(document->TextForRange(layoutLines[cursorLine]).size(), cursorCol);
+}
+
 void DocumentWidget::Replace(const DocumentRange& range, const QString& newText, bool createUndoStep, Replacement* undoReplacement) {
   DocumentRange selectionRange;
   bool placeCursorAtEnd = true;

@@ -1898,6 +1898,10 @@ void MainWindow::CurrentTabChanged(int /*index*/) {
     // away from other widgets (e.g., the find bar, or the stop button for
     // building), it went to the search bar instead of the editor.
     setTabOrder(tabData->widget, searchBar);
+    
+    int line, column;
+    tabData->widget->GetCursor(&line, &column);
+    DisplayCursorPosition(line, column);
   }
   
   saveAction->setEnabled(tabData != nullptr);

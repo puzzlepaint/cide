@@ -458,16 +458,19 @@ bool Document::Open(const QString& path) {
 
 bool Document::Save(const QString& path) {
   QString pathCopy = path;  // Copy the path for the case that the passed-in reference goes to mPath
+  QString oldPath = mPath;
   setPath(QStringLiteral(""));  // stop watching any old file
   
   QFile file(pathCopy);
   if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+    setPath(oldPath);  // return to old file on failure
     return false;
   }
   
   for (int b = 0; b < mBlocks.size(); ++ b) {
     QByteArray utf8Data = mBlocks[b]->text().toUtf8();
     if (file.write(utf8Data) != utf8Data.size()) {
+      setPath(oldPath);  // return to old file on failure
       return false;
     }
   }

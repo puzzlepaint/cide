@@ -282,7 +282,7 @@ Settings::Settings() {
   AddConfigurableShortcut(tr("Save file"), saveFileShortcut, QKeySequence::Save);
   AddConfigurableShortcut(tr("Save file as..."), saveAsFileShortcut, QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_S));
   AddConfigurableShortcut(tr("Close file"), closeFileShortcut, QKeySequence::Close);
-  AddConfigurableShortcut(tr("Quit program"), quitShortcut, QKeySequence::Quit);
+  AddConfigurableShortcut(tr("Quit program"), quitShortcut, QKeySequence());
   AddConfigurableShortcut(tr("Find and replace in files"), findAndReplaceInFilesShortcut, QKeySequence(Qt::CTRL + Qt::ALT + Qt::Key_F));
   AddConfigurableShortcut(tr("Show project files dock"), showProjectFilesDockShortcut, QKeySequence());
   AddConfigurableShortcut(tr("Show run dock"), showRunDockShortcut, QKeySequence());

@@ -113,14 +113,19 @@ QString PrintType(CXType type) {
   // qDebug() << "Printing cursor kind: " << ClangString(clang_getTypeKindSpelling(type.kind)).ToQString();
   // qDebug() << "DeclCursor for type" << ClangString(clang_getTypeSpelling(type)).ToQString() << "is of cursor type" << ClangString(clang_getCursorKindSpelling(clang_getCursorKind(declCursor))).ToQString();
   
-  // If this is an array type, split off the array bracket [] and print the
-  // underlying type.
+  // If this is an array type, query the element type and get the array size(s) into arraySizesString.
+  // Then, continue to print the element type, to which the array size(s) will be appended at the end.
+  QString arraySizesString;
   CXType arrayElemType = clang_getArrayElementType(type);
-  if (arrayElemType.kind != CXType_Invalid) {
-    QString typeSpelling = ClangString(clang_getTypeSpelling(type)).ToQString();
-    int openArrayBracketPos = typeSpelling.lastIndexOf('[');
-    if (openArrayBracketPos > 0) {
-      return PrintType(arrayElemType) + typeSpelling.mid(openArrayBracketPos);
+  while (arrayElemType.kind != CXType_Invalid) {
+    long long arraySize = clang_getArraySize(type);
+    type = arrayElemType;
+    
+    if (arraySize == -1) {
+      break;
+    } else {
+      arraySizesString += QStringLiteral("[") + QString::number(arraySize) + QStringLiteral("]");
+      arrayElemType = clang_getArrayElementType(type);
     }
   }
   
@@ -197,25 +202,26 @@ QString PrintType(CXType type) {
            PrintLinkToCursorInfo(declCursor) +
            typeSpelling.toHtmlEscaped() +
            QStringLiteral("</a>") +
-           nonLinkTypeSpelling;
+           nonLinkTypeSpelling +
+           arraySizesString;
   }
   
   // Check whether we have a pointer or reference type.
   if (type.kind == CXType_Pointer) {
     CXType pointeeType = clang_getPointeeType(type);
     if (pointeeType.kind != CXType_Invalid) {
-      return PrintType(pointeeType) + QStringLiteral("*");
+      return PrintType(pointeeType) + QStringLiteral("*") + arraySizesString;
     }
   } else if (type.kind == CXType_RValueReference ||
              type.kind == CXType_LValueReference) {
     CXType pointeeType = clang_getPointeeType(type);
     if (pointeeType.kind != CXType_Invalid) {
-      return PrintType(pointeeType) + ((type.kind == CXType_LValueReference) ? QStringLiteral("&") : QStringLiteral("&&"));
+      return PrintType(pointeeType) + ((type.kind == CXType_LValueReference) ? QStringLiteral("&") : QStringLiteral("&&")) + arraySizesString;
     }
   }
   
   // We failed to decompose the type, thus print it as-is without a link.
-  return ClangString(clang_getTypeSpelling(type)).ToQString().toHtmlEscaped();
+  return ClangString(clang_getTypeSpelling(type)).ToQString().toHtmlEscaped() + arraySizesString;
 }
 
 /// Called by PrintMember() for records (i.e., class/struct).

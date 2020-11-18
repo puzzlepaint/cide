@@ -20,6 +20,9 @@ bool GuessIsCFile(const QString& path);
 /// function is certain that the file is a header, or to false if not.
 bool GuessIsHeader(const QString& path, bool* certain);
 
+/// Returns whether the file with the given path is a CUDA source file.
+bool IsCUDAFile(const QString& path);
+
 /// Tries to find the corresponding header or source file for the file with the
 /// given path. Returns an empty string if no corresponding file was found.
 QString FindCorrespondingHeaderOrSource(const QString& path, const std::vector<std::shared_ptr<Project>>& projects);

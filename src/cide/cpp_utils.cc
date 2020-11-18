@@ -77,6 +77,11 @@ bool GuessIsHeader(const QString& path, bool* certain) {
   return isHeader;
 }
 
+bool IsCUDAFile(const QString& path) {
+  return path.endsWith(QStringLiteral(".cu"), Qt::CaseInsensitive) ||
+         path.endsWith(QStringLiteral(".cuh"), Qt::CaseInsensitive);
+}
+
 QString FindCorrespondingHeaderOrSource(const QString& path, const std::vector<std::shared_ptr<Project>>& projects) {
   QFileInfo thisFileInfo = QFileInfo(path);
   QString canonicalPath = thisFileInfo.canonicalFilePath();
@@ -84,11 +89,29 @@ QString FindCorrespondingHeaderOrSource(const QString& path, const std::vector<s
   QString extension = thisFileInfo.suffix();
   
   bool isHeader = GuessIsHeader(path, nullptr);
+  bool isCUDAFile = IsCUDAFile(path);
+  
+  QStringList candidates;
+  
+  auto getBestCandidate = [&]() {
+    QString bestCandidate;
+    for (const QString& candidate : candidates) {
+      if (bestCandidate.isEmpty()) {
+        bestCandidate = candidate;
+      }
+      if (GuessIsHeader(candidate, nullptr) != isHeader) {
+        bestCandidate = candidate;
+        if (isCUDAFile == IsCUDAFile(candidate)) {
+          break;
+        }
+      }
+    }
+    return bestCandidate;
+  };
   
   // Look for other files with the same base name in the same directory.
   QDir dir = QFileInfo(path).dir();
   QStringList fileList = dir.entryList(QDir::Files | QDir::NoDotAndDotDot | QDir::System);
-  QStringList candidates;
   for (const QString& fileName : fileList) {
     QFileInfo fileInfo = QFileInfo(fileName);
     if (fileInfo.baseName() == baseName && fileInfo.suffix() != extension) {
@@ -97,15 +120,8 @@ QString FindCorrespondingHeaderOrSource(const QString& path, const std::vector<s
   }
   
   // If anything was found, decide for one of those files.
-  QString bestCandidate;
   if (!candidates.isEmpty()) {
-    for (const QString& candidate : candidates) {
-      bestCandidate = candidate;
-      if (GuessIsHeader(candidate, nullptr) != isHeader) {
-        break;
-      }
-    }
-    return bestCandidate;
+    return getBestCandidate();
   }
   
   // Look for other project files with the same base name (in any other
@@ -127,15 +143,8 @@ QString FindCorrespondingHeaderOrSource(const QString& path, const std::vector<s
   }
   
   // If anything was found, decide for one of those files.
-  // TODO: Code duplicated from above
   if (!candidates.isEmpty()) {
-    for (const QString& candidate : candidates) {
-      bestCandidate = candidate;
-      if (GuessIsHeader(candidate, nullptr) != isHeader) {
-        break;
-      }
-    }
-    return bestCandidate;
+    return getBestCandidate();
   }
   
   return QStringLiteral("");

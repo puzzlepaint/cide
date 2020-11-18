@@ -818,9 +818,12 @@ void Document::Replace(const DocumentRange& range, const QString& newText, bool 
     // * TODO: We currently also require the version graph root to have only one
     //         back-link. This should be avoided with special case handling which
     //         updates the other link(s) as well.
+    bool isReplacement = !newText.isEmpty() && !range.IsEmpty();
+    
     bool mergedUndoStep = false;
     if (!forceNewUndoStep &&
         !creatingCombinedUndoStep &&
+        !isReplacement &&
         versionGraphRoot->links.size() == 1 &&
         versionGraphRoot->links[0].replacements.size() == 1) {
       constexpr int kMaxMillisecondsForUndoMerging = 500;  // TODO: Make configurable
@@ -829,34 +832,37 @@ void Document::Replace(const DocumentRange& range, const QString& newText, bool 
         DocumentVersionLink& link = versionGraphRoot->links[0];
         Replacement& replacement = link.replacements[0];
         
-        // TODO: Check for consistency of the character types as well?
-        if (replacement.text.isEmpty() &&
-            replacement.range.end == range.start &&
-            !newText.isEmpty()) {
-          // Merge two additions
+        bool undoIsReplacement = !replacement.text.isEmpty() && !replacement.range.IsEmpty();
+        
+        if (!undoIsReplacement) {
+          // TODO: Check for consistency of the character types as well?
+          if (replacement.text.isEmpty() &&
+              replacement.range.end == range.start &&
+              !newText.isEmpty()) {
+            // Merge two additions
+            replacement.range.end = range.start + newText.size();
+            mergedUndoStep = true;
+          } else if (!replacement.text.isEmpty() &&
+                    replacement.range.start == replacement.range.end &&
+                    replacement.range.end == range.start &&
+                    newText.isEmpty()) {
+            // Merge two removals (old removal at new range start)
+            replacement.text = replacement.text + oldText;
+            mergedUndoStep = true;
+          } else if (!replacement.text.isEmpty() &&
+                    replacement.range.start == replacement.range.end &&
+                    replacement.range.end == range.end &&
+                    newText.isEmpty()) {
+            // Merge two removals (old removal at new range end)
+            replacement.range = DocumentRange(range.start, range.start + newText.size());
+            replacement.text = oldText + replacement.text;
+            mergedUndoStep = true;
+          }
+        }
+        
+        if (mergedUndoStep) {
           versionGraphRoot->creationTime = currentTime;
           versionGraphRoot->version = mVersion;
-          replacement.range.end = range.start + newText.size();
-          mergedUndoStep = true;
-        } else if (!replacement.text.isEmpty() &&
-                   replacement.range.start == replacement.range.end &&
-                   replacement.range.end == range.start &&
-                   newText.isEmpty()) {
-          // Merge two removals (old removal at new range start)
-          versionGraphRoot->creationTime = currentTime;
-          versionGraphRoot->version = mVersion;
-          replacement.text = replacement.text + oldText;
-          mergedUndoStep = true;
-        } else if (!replacement.text.isEmpty() &&
-                   replacement.range.start == replacement.range.end &&
-                   replacement.range.end == range.end &&
-                   newText.isEmpty()) {
-          // Merge two removals (old removal at new range end)
-          versionGraphRoot->creationTime = currentTime;
-          versionGraphRoot->version = mVersion;
-          replacement.range = DocumentRange(range.start, range.start + newText.size());
-          replacement.text = oldText + replacement.text;
-          mergedUndoStep = true;
         }
       }
     }

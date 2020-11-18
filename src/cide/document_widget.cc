@@ -1936,7 +1936,7 @@ void DocumentWidget::UpdateTooltip(
       tooltip &&
       notOkDueToDataRemoval &&
       cursorPos.x() <= tooltipCreationPos.x() + kTooltipOffset + tooltip->width() &&
-      cursorPos.y() <= tooltipCreationPos.y() + kTooltipOffset + 10 &&
+      cursorPos.y() <= tooltipCreationPos.y() + kTooltipOffset + tooltip->height() &&
       cursorPos.x() >= tooltipCreationPos.x() - 40 &&
       cursorPos.y() >= tooltipCreationPos.y() - 15) {
     ok = true;

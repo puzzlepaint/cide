@@ -36,6 +36,8 @@
 #include "cide/settings.h"
 #include "cide/util.h"
 
+constexpr int maxBuildIssueCount = 100;  // TODO: Make configurable
+
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent) {
   nextTabDataIndex = 0;
@@ -1974,7 +1976,9 @@ void MainWindow::RunGitk() {
   
   gitkProcess.reset(new QProcess());
   gitkProcess->setWorkingDirectory(currentProject.GetDir());
-  gitkProcess->start("gitk");
+  // TODO: Check whether the process starts correctly or not, show an error if not.
+  // TODO: Allow the user to configure which program to start (gitk, gitg, etc.)
+  gitkProcess->start("gitk", QStringList());
 }
 
 void MainWindow::ShowProgramSettings() {
@@ -2442,18 +2446,29 @@ void MainWindow::ClearBuildIssues() {
 }
 
 void MainWindow::AddBuildIssue(const QString& text, bool isError) {
-  QLabel* issueLabel = new QLabel(text);
-  issueLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
-  issueLabel->setFont(Settings::Instance().GetDefaultFont());
-  issueLabel->setStyleSheet(
-      QStringLiteral("QLabel{border-radius:5px;background-color:%1;padding:5px;}")
-          .arg(isError ? QStringLiteral("#ffe6e6") : QStringLiteral("#e6ffe6")));
-  issueLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Maximum);
-  connect(issueLabel, &QLabel::linkActivated, this, &MainWindow::GotoDocumentLocationFromBuildDir);
-  // Insert the widget before the stretch at the end
-  buildIssuesLayout->insertWidget(buildIssuesLayout->count() - 1, issueLabel);
+  auto addIssueLabel = [&](const QString& labelText) {
+    QLabel* issueLabel = new QLabel(labelText);
+    issueLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
+    issueLabel->setFont(Settings::Instance().GetDefaultFont());
+    issueLabel->setStyleSheet(
+        QStringLiteral("QLabel{border-radius:5px;background-color:%1;padding:5px;}")
+            .arg(isError ? QStringLiteral("#ffe6e6") : QStringLiteral("#e6ffe6")));
+    issueLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Maximum);
+    connect(issueLabel, &QLabel::linkActivated, this, &MainWindow::GotoDocumentLocationFromBuildDir);
+    // Insert the widget before the stretch at the end
+    buildIssuesLayout->insertWidget(buildIssuesLayout->count() - 1, issueLabel);
+    
+    buildIssuesWidget->resize(buildIssuesWidget->sizeHint());
+    
+    return issueLabel;
+  };
   
-  buildIssuesWidget->resize(buildIssuesWidget->sizeHint());
+  QLabel* issueLabel = nullptr;
+  if (buildErrors + buildWarnings == maxBuildIssueCount) {
+    addIssueLabel(tr("<b>Maximum error / warning count of %1 reached, additional issues were suppressed to prevent a possible UI slowdown.</b>").arg(maxBuildIssueCount));
+  } else if (buildErrors + buildWarnings < maxBuildIssueCount) {
+    issueLabel = addIssueLabel(text);
+  }
   
   if (buildErrors == 0 && buildWarnings == 0) {
     ViewBuildOutput();
@@ -2469,8 +2484,10 @@ void MainWindow::AddBuildIssue(const QString& text, bool isError) {
 
 void MainWindow::AppendBuildIssue(const QString& text) {
   if (!lastAddedBuildIssueLabel) {
-    qDebug() << "Error: attempting to append to a build issue, but no issue has been created yet";
-    AddBuildIssue(text, true);
+    if (buildErrors + buildWarnings <= maxBuildIssueCount) {
+      qDebug() << "Error: attempting to append to a build issue, but no issue has been created yet";
+      AddBuildIssue(text, true);
+    }
     return;
   }
   

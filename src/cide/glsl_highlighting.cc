@@ -460,30 +460,39 @@ class GLSLTraverser : public glslang::TIntermTraverser {
   virtual void visitSymbol(TIntermSymbol* node) override {
     if (node->getLoc().line == 0) { return; }  // seemingly no valid location information
     
-    const auto& variableDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::VariableDefinition);
-    const auto& variableUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::VariableUse);
-    
     // TODO: Never generate a definition for built-in variables such as for example gl_GlobalInvocationID.
     // TODO: Also, descriptors should not be treated as a definition the first time they are used in the shader code.
-    auto it = perVariableColorMap.find(node->getId());
-    bool isDefinition = it == perVariableColorMap.end();
-    
     QColor overrideColor;
-    if (!isDefinition) {
-      if (perVariableColoring) { overrideColor = it->second; }
+    bool newColor;
+    auto it = perVariableColorMap.find(node->getId());
+    newColor = it == perVariableColorMap.end();
+    if (!newColor) {
+      overrideColor = it->second;
     } else {
-      if (perVariableColoring) {
-        overrideColor = Settings::Instance().GetLocalVariableColor(variableCounterPerFunction % Settings::Instance().GetLocalVariableColorPoolSize());
-        perVariableColorMap[node->getId()] = overrideColor;
-      } else {
-        perVariableColorMap[node->getId()] = QColor();
-      }
+      overrideColor = Settings::Instance().GetLocalVariableColor(variableCounterPerFunction % Settings::Instance().GetLocalVariableColorPoolSize());
+      perVariableColorMap[node->getId()] = overrideColor;
       ++ variableCounterPerFunction;
     }
     
+    bool isDefinition = newColor;
+    if (node->getQualifier().hasLayout() ||
+        node->getQualifier().hasLocation() ||
+        node->getQualifier().hasBinding() ||
+        node->getQualifier().hasSpecConstantId() ||
+        node->getQualifier().isUniformOrBuffer() ||
+        node->getQualifier().isFrontEndConstant() ||
+        node->getQualifier().isPipeInput() ||
+        node->getQualifier().isPipeOutput() ||
+        node->getQualifier().isSpecConstant() ||
+        node->getQualifier().isPushConstant()) {
+      isDefinition = false;
+    }
+    
+    const auto& variableDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::VariableDefinition);
+    const auto& variableUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::VariableUse);
     const Settings::ConfigurableTextStyle* style = isDefinition ? &variableDefinitionStyle : &variableUseStyle;
     
-    if (overrideColor.isValid()) {
+    if (perVariableColoring) {
       // We usually override the text color, but do override the background color instead if the style does not affect the text color.
       document->AddHighlightRange(GetNameRange(node), false, overrideColor, style->bold, style->affectsText, style->affectsBackground, style->affectsText ? style->backgroundColor : overrideColor);
     } else {

@@ -199,10 +199,15 @@ bool Project::Load(const QString& path) {
     buildCmd = QString::fromStdString(fileNode["buildCmd"].as<std::string>());
   }
   
+  buildTargets.clear();
   if (fileNode["buildTarget"].IsDefined()) {
-    buildTarget = QString::fromStdString(fileNode["buildTarget"].as<std::string>());
-  } else {
-    buildTarget = "";
+    buildTargets.append(QString::fromStdString(fileNode["buildTarget"].as<std::string>()));
+  } else if (fileNode["buildTargets"].IsDefined()) {
+    YAML::Node buildTargetsNode = fileNode["buildTargets"];
+    buildTargets.reserve(buildTargetsNode.size());
+    for (int i = 0; i < buildTargetsNode.size(); ++ i) {
+      buildTargets.append(QString::fromStdString(buildTargetsNode[i].as<std::string>()));
+    }
   }
   
   if (fileNode["buildThreads"].IsDefined()) {
@@ -300,8 +305,12 @@ bool Project::Save(const QString& path) {
   out << YAML::Key << "buildCmd";
   out << YAML::Value << buildCmd.toStdString();
   
-  out << YAML::Key << "buildTarget";
-  out << YAML::Value << buildTarget.toStdString();
+  out << YAML::Key << "buildTargets";
+  out << YAML::Value << YAML::Flow << YAML::BeginSeq;
+  for (const QString& targetName : buildTargets) {
+    out << targetName.toStdString();
+  }
+  out << YAML::EndSeq;
   
   out << YAML::Key << "buildThreads";
   out << YAML::Value << buildThreads;

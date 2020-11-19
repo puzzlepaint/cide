@@ -23,14 +23,16 @@
 #include "cide/run_gdb.h"
 #include "cide/tab_bar.h"
 
+class BuildTargetSelector;
 class DockWidgetWithClosedSignal;
-class WidgetWithRightClickSignal;
 class QComboBox;
 class QLineEdit;
 class QListWidget;
 class QListWidgetItem;
+class QToolButton;
 class QTreeWidget;
 class SearchBar;
+class WidgetWithRightClickSignal;
 
 class MainWindow : public QMainWindow {
  Q_OBJECT
@@ -101,8 +103,8 @@ class MainWindow : public QMainWindow {
   
   void SwitchHeaderSource();
   
-  void UpdateBuildTargetCombo();
-  void BuildTargetChanged(const QString& target);
+  void UpdateBuildTargetSelector();
+  void SelectedBuildTargetsChanged();
   
   void GlobalSymbolSearch();
   void SearchLocalContexts();
@@ -216,6 +218,7 @@ class MainWindow : public QMainWindow {
   
   QAction* saveAction;
   QAction* saveAsAction;
+  QAction* reloadFileAction;
   QAction* closeAction;
   
   QAction* currentFileParseSettingsAction;
@@ -227,7 +230,8 @@ class MainWindow : public QMainWindow {
   QLabel* statusTextLabel;
   QLabel* lineColLabel;
   
-  QComboBox* buildTargetCombo;
+  BuildTargetSelector* buildTargetSelector;
+  QToolButton* searchBarModeButton;
   SearchBar* searchBar;
   QAction* searchFilesClickAction;
   QAction* searchLocalContextsClickAction;

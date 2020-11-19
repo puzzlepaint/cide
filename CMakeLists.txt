@@ -100,6 +100,8 @@ add_library(CIDEBaseLib SHARED
   
   src/cide/about_dialog.cc
   src/cide/argument_hint_widget.cc
+  src/cide/build_target_list_widget.cc
+  src/cide/build_target_selector.cc
   src/cide/clang_highlighting.cc
   src/cide/clang_index.cc
   src/cide/clang_tu_pool.cc

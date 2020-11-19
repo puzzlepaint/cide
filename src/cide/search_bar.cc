@@ -155,7 +155,7 @@ bool SearchBar::event(QEvent* event) {
 
 void SearchBar::keyPressEvent(QKeyEvent* event) {
   if (event->key() == Qt::Key_Escape) {
-    mListWidget->hide();
+    CloseListWidget();
     QWidget* currentDocumentWidget = GetMainWindow()->GetCurrentDocumentWidget();
     if (currentDocumentWidget) {
       currentDocumentWidget->setFocus();

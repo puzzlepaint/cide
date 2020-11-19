@@ -25,6 +25,7 @@
 #include <QTreeWidget>
 
 #include "cide/about_dialog.h"
+#include "cide/build_target_selector.h"
 #include "cide/cpp_utils.h"
 #include "cide/clang_parser.h"
 #include "cide/clang_utils.h"
@@ -60,16 +61,16 @@ MainWindow::MainWindow(QWidget* parent)
   // Toolbar
   QToolBar* toolbar = new QToolBar();
   
-  QLabel* buildTargetLabel = new QLabel(tr("Build target: "));
+  QLabel* buildTargetLabel = new QLabel(tr("Build targets: "));
   toolbar->addWidget(buildTargetLabel);
-  buildTargetCombo = new QComboBox();
-  buildTargetCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
-  connect(buildTargetCombo, &QComboBox::currentTextChanged, this, &MainWindow::BuildTargetChanged);
-  toolbar->addWidget(buildTargetCombo);
+  buildTargetSelector = new BuildTargetSelector(this);
+  buildTargetSelector->setMinimumWidth(400);
+  connect(buildTargetSelector, &BuildTargetSelector::TargetSelectionChanged, this, &MainWindow::SelectedBuildTargetsChanged);
+  toolbar->addWidget(buildTargetSelector);
   
   toolbar->addSeparator();
   
-  QToolButton* searchBarModeButton = new QToolButton();
+  searchBarModeButton = new QToolButton();
   searchBarModeButton->setIcon(QIcon(":/cide/magnifying-glass.png"));
   searchBarModeButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
   searchBarModeButton->setPopupMode(QToolButton::InstantPopup);
@@ -102,7 +103,7 @@ MainWindow::MainWindow(QWidget* parent)
   connect(tabBar, &TabBar::CloseAllOtherTabs, this, &MainWindow::CloseAllOtherDocuments);
   connect(tabBar, &TabBar::CloseAllTabs, this, &MainWindow::CloseAllDocuments);
   
-  QAction* reloadFileAction = new ActionWithConfigurableShortcut(tr("Reload file"), reloadFileShortcut, this);
+  reloadFileAction = new ActionWithConfigurableShortcut(tr("Reload file"), reloadFileShortcut, this);
   connect(reloadFileAction, &QAction::triggered, this, &MainWindow::ReloadFile);
   addAction(reloadFileAction);
   
@@ -367,7 +368,9 @@ MainWindow::MainWindow(QWidget* parent)
   });
   
   QTimer::singleShot(0, this, [&](){
-    if (!tabs.empty()) {
+    if (tabs.empty()) {
+      projectTreeView.SetFocus();
+    } else {
       tabs.begin()->second.widget->setFocus();
     }
   });
@@ -428,7 +431,7 @@ bool MainWindow::LoadProject(const QString& path, QWidget* parent) {
     QMessageBox::warning(parent, tr("Warning"), tr("Configuring the project generated the following warning(s):\n\n%1").arg(warnings));
   }
   
-  UpdateBuildTargetCombo();
+  UpdateBuildTargetSelector();
   
   // Start indexing
   if (newProject->GetIndexAllProjectFiles()) {
@@ -696,7 +699,7 @@ void MainWindow::ReconfigureProject(const std::shared_ptr<Project>& project, QWi
     UpdateIndexingStatus();
   }
   
-  UpdateBuildTargetCombo();
+  UpdateBuildTargetSelector();
 }
 
 void MainWindow::ShowProjectSettings() {
@@ -1467,8 +1470,9 @@ void MainWindow::BuildCurrentTarget() {
     arguments.push_back("-j");
     arguments.push_back(QString::number(currentProject->GetBuildThreads()));
   }
-  if (!buildTargetCombo->currentText().isEmpty()) {
-    arguments.push_back(buildTargetCombo->currentText());
+  QStringList buildTargets = buildTargetSelector->GetSelectedTargets();
+  for (const QString& targetName : buildTargets) {
+    arguments.push_back(targetName);
   }
   
   // Start the process.
@@ -1812,16 +1816,16 @@ void MainWindow::SwitchHeaderSource() {
   }
 }
 
-void MainWindow::UpdateBuildTargetCombo() {
+void MainWindow::UpdateBuildTargetSelector() {
   auto project = GetCurrentProject();
-  QString oldSelectedTarget;
+  QStringList oldSelectedTargets;
   if (project) {
-    oldSelectedTarget = project->GetBuildTarget();
+    oldSelectedTargets = project->GetBuildTargets();
   } else {
-    oldSelectedTarget = buildTargetCombo->currentText();
+    oldSelectedTargets = buildTargetSelector->GetSelectedTargets();
   }
   
-  buildTargetCombo->clear();
+  buildTargetSelector->clear();
   
   if (!project) {
     return;
@@ -1830,18 +1834,16 @@ void MainWindow::UpdateBuildTargetCombo() {
   int numTargets = project->GetNumTargets();
   for (int targetIdx = 0; targetIdx < numTargets; ++ targetIdx) {
     const QString& targetName = project->GetTarget(targetIdx).name;
-    buildTargetCombo->addItem(targetName);
-    if ((!oldSelectedTarget.isEmpty() && oldSelectedTarget == targetName) ||
-        (oldSelectedTarget.isEmpty() && targetName == QStringLiteral("all"))) {
-      buildTargetCombo->setCurrentIndex(buildTargetCombo->count() - 1);
-    }
+    buildTargetSelector->AddTarget(targetName, /*selected*/ oldSelectedTargets.contains(targetName, Qt::CaseSensitive));
   }
+  
+  buildTargetSelector->update(buildTargetSelector->rect());
 }
 
-void MainWindow::BuildTargetChanged(const QString& target) {
+void MainWindow::SelectedBuildTargetsChanged() {
   auto project = GetCurrentProject();
   if (project) {
-    project->SetBuildTarget(target);
+    project->SetBuildTargets(buildTargetSelector->GetSelectedTargets());
   }
 }
 
@@ -1895,11 +1897,13 @@ void MainWindow::CurrentTabChanged(int /*index*/) {
     
     tabData->widget->setFocus(Qt::OtherFocusReason);
     
-    // Try to have the search bar always behind the current editor widget. This
+    // Try to have the search bar and similar widgets always behind the current editor widget. This
     // is an attempt to avoid the problem that sometimes, when the focus went
     // away from other widgets (e.g., the find bar, or the stop button for
     // building), it went to the search bar instead of the editor.
     setTabOrder(tabData->widget, searchBar);
+    setTabOrder(searchBar, searchBarModeButton);
+    setTabOrder(searchBarModeButton, buildTargetSelector);
     
     int line, column;
     tabData->widget->GetCursor(&line, &column);
@@ -1908,6 +1912,7 @@ void MainWindow::CurrentTabChanged(int /*index*/) {
   
   saveAction->setEnabled(tabData != nullptr);
   saveAsAction->setEnabled(tabData != nullptr);
+  reloadFileAction->setEnabled(tabData != nullptr);
   closeAction->setEnabled(tabData != nullptr);
   currentFileParseSettingsAction->setEnabled(tabData != nullptr);
   currentFileParseIssuesAction->setEnabled(tabData != nullptr);
@@ -2115,7 +2120,7 @@ void MainWindow::OpenProjectsChangedSlot() {
   openProjectAction->setEnabled(!isAnyProjectOpen);
   closeProjectAction->setEnabled(isAnyProjectOpen);
   
-  UpdateBuildTargetCombo();
+  UpdateBuildTargetSelector();
   
   UpdateWindowTitle();
 }
@@ -2142,6 +2147,7 @@ void MainWindow::moveEvent(QMoveEvent* /*event*/) {
     currentTabData->widget->Moved();
   }
   searchBar->Moved();
+  buildTargetSelector->Moved();
 }
 
 void MainWindow::closeEvent(QCloseEvent* event) {

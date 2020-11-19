@@ -44,14 +44,13 @@ struct SearchBarItemSorter {
 
 
 SearchListWidget::SearchListWidget(SearchBar* searchBarWidget, QWidget* parent)
-    : QWidget(parent, GetCustomTooltipWindowFlags()) {
+    : QWidget(parent, GetCustomTooltipWindowFlags()),
+      searchBarWidget(searchBarWidget) {
   setFocusPolicy(Qt::NoFocus);
   setAutoFillBackground(false);
   
   scrollBar = new QScrollBar(Qt::Vertical, this);
   connect(scrollBar, &QScrollBar::valueChanged, this, &SearchListWidget::ScrollChanged);
-  
-  this->searchBarWidget = searchBarWidget;
 }
 
 SearchListWidget::~SearchListWidget() {}

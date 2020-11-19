@@ -191,7 +191,7 @@ class Project : public QObject {
   inline const QDir& GetBuildDir() const { return buildDir; }
   inline const QString& GetBuildCmd() const { return buildCmd; }
   
-  inline const QString& GetBuildTarget() const { return buildTarget; }
+  inline const QStringList& GetBuildTargets() const { return buildTargets; }
   
   /// Returns the number of threads that should be used for building.
   /// If this returns 0, no thread count should be specified for the build process.
@@ -244,7 +244,7 @@ class Project : public QObject {
  public slots:
   inline void SetName(const QString& name) { this->name = name; }
   inline void SetBuildDir(const QDir& dir) { buildDir = dir; }
-  inline void SetBuildTarget(const QString& target) { buildTarget = target; }
+  inline void SetBuildTargets(const QStringList& targets) { buildTargets = targets; }
   inline void SetBuildThreads(int numThreads) { buildThreads = numThreads; }
   inline void SetSpacesPerTab(int value) { spacesPerTab = value; }
   inline void SetInsertSpacesOnTab(bool enable) { insertSpacesOnTab = enable; }
@@ -283,7 +283,7 @@ class Project : public QObject {
   QDir buildDir;
   QString buildCmd;  // TODO: Deprecated. Remove?
   
-  QString buildTarget;
+  QStringList buildTargets;
   
   /// Number of threads that should be used for building.
   /// If set to 0, no thread count should be specified for the build process.

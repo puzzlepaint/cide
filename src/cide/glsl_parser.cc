@@ -227,9 +227,10 @@ static void RetrieveDiagnostics(Document* document, const char* infoLog, const s
           } else {
             lineEndOffset = document->FullDocumentRange().end.offset;
           }
-          QString errorString = line.mid(errorStringStart).toString();
+          QString errorString = line.mid(errorStringStart).trimmed().toString();
           
-          if (errorString != QStringLiteral("compilation terminated")) {
+          if (errorString != QStringLiteral("compilation terminated") &&
+              errorString != QStringLiteral("'' : compilation terminated")) {
             document->AddLineAttributes(lineNumber, static_cast<int>(LineAttribute::Error));
             
             std::shared_ptr<Problem> newProblem(new Problem(Problem::Type::Error, lineNumber + 1, /*col*/ 0, lineStartOffset, errorString, document->path()));

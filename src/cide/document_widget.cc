@@ -2807,8 +2807,14 @@ void DocumentWidget::paintEvent(QPaintEvent* event) {
         if (characterOffset >= problemRangeIt->range.start.offset) {
           if (document->problems()[problemRangeIt->problemIndex]->type() == Problem::Type::Warning) {
             warningRangeEnd = std::max(warningRangeEnd, problemRangeIt->range.end.offset);
+            if (warningRangeEnd >= characterOffset) {
+              lastProblemInLine = problemRangeIt->problemIndex;
+            }
           } else {  // if (document->problems[problemRangeIt->problemIndex].type == Problem::Type::Error) {
             errorRangeEnd = std::max(errorRangeEnd, problemRangeIt->range.end.offset);
+            if (errorRangeEnd >= characterOffset) {
+              lastProblemInLine = problemRangeIt->problemIndex;
+            }
           }
           lastProblem = problemRangeIt->problemIndex;
           ++ problemRangeIt;
@@ -2900,6 +2906,13 @@ void DocumentWidget::paintEvent(QPaintEvent* event) {
         painter.drawLine(xCoord, currentY + lineHeight - 1, rect.right(), currentY + lineHeight - 1);
         painter.setPen(oldColor);
       }
+    }
+    
+    // Make sure not to ignore problems in the last line
+    if (problemRangeIt != document->problemRanges().end() &&
+        problemRangeIt->range.start.offset <= layoutLines[line].end.offset &&
+        problemRangeIt->range.end.offset >= layoutLines[line].start.offset) {
+      lastProblemInLine = problemRangeIt->problemIndex;
     }
     
     // Draw inline problem description to the right of the text

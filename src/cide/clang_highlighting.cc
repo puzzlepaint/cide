@@ -194,39 +194,6 @@ CXChildVisitResult VisitClangAST_AddHighlightingAndContexts(CXCursor cursor, CXC
   HighlightingASTVisitorData* data = reinterpret_cast<HighlightingASTVisitorData*>(client_data);
   Document* document = data->document;
   
-  const auto& macroDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::MacroDefinition);
-  const auto& macroInvocationStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::MacroInvocation);
-  const auto& templateParameterDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::TemplateParameterDefinition);
-  const auto& templateParameterUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::TemplateParameterUse);
-  const auto& variableDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::VariableDefinition);
-  const auto& variableUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::VariableUse);
-  const auto& memberVariableUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::MemberVariableUse);
-  const auto& typedefDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::TypedefDefinition);
-  const auto& typedefUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::TypedefUse);
-  const auto& enumConstantDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::EnumConstantDefinition);
-  const auto& enumConstantUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::EnumConstantUse);
-  const auto& constructorOrDestructorDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ConstructorOrDestructorDefinition);
-  const auto& constructorOrDestructorUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ConstructorOrDestructorUse);
-  const auto& functionDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::FunctionDefinition);
-  const auto& functionUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::FunctionUse);
-  const auto& unionDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::UnionDefinition);
-  // TODO: Union use?
-  const auto& enumDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::EnumDefinition);
-  // TODO: Enum use?
-  const auto& classOrStructDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ClassOrStructDefinition);
-  const auto& classOrStructUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ClassOrStructUse);
-  const auto& labelStatementStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::LabelStatement);
-  const auto& labelReferenceStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::LabelReference);
-  const auto& integerLiteralStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::IntegerLiteral);
-  const auto& floatingLiteralStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::FloatingLiteral);
-  const auto& imaginaryLiteralStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ImaginaryLiteral);
-  const auto& stringLiteralStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::StringLiteral);
-  const auto& characterLiteralStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::CharacterLiteral);
-  const auto& preprocessorDirectiveStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::PreprocessorDirective);
-  const auto& includePathStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::IncludePath);
-  const auto& namespaceDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::NamespaceDefinition);
-  const auto& namespaceUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::NamespaceUse);
-  
   // Skip over cursors which are in included files
   CXSourceRange clangExtent = clang_getCursorExtent(cursor);
   CXSourceLocation extentStart = clang_getRangeStart(clangExtent);
@@ -251,6 +218,7 @@ CXChildVisitResult VisitClangAST_AddHighlightingAndContexts(CXCursor cursor, CXC
     
     data->macroExpansionRanges.push_back(std::make_pair(startOffset, endOffset));
     
+    const auto& macroInvocationStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::MacroInvocation);
     document->AddHighlightRange(CXSourceRangeToDocumentRange(clangExtent, *data->lineOffsets), false, macroInvocationStyle);
     return CXChildVisit_Continue;
   }
@@ -310,6 +278,38 @@ CXChildVisitResult VisitClangAST_AddHighlightingAndContexts(CXCursor cursor, CXC
 //   std::cout << std::endl;
 //   clang_disposeString(spelling);
 //   clang_disposeString(kindSpelling);
+  
+  const auto& macroDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::MacroDefinition);
+  const auto& templateParameterDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::TemplateParameterDefinition);
+  const auto& templateParameterUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::TemplateParameterUse);
+  const auto& variableDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::VariableDefinition);
+  const auto& variableUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::VariableUse);
+  const auto& memberVariableUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::MemberVariableUse);
+  const auto& typedefDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::TypedefDefinition);
+  const auto& typedefUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::TypedefUse);
+  const auto& enumConstantDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::EnumConstantDefinition);
+  const auto& enumConstantUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::EnumConstantUse);
+  const auto& constructorOrDestructorDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ConstructorOrDestructorDefinition);
+  const auto& constructorOrDestructorUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ConstructorOrDestructorUse);
+  const auto& functionDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::FunctionDefinition);
+  const auto& functionUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::FunctionUse);
+  const auto& unionDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::UnionDefinition);
+  // TODO: Union use?
+  const auto& enumDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::EnumDefinition);
+  // TODO: Enum use?
+  const auto& classOrStructDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ClassOrStructDefinition);
+  const auto& classOrStructUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ClassOrStructUse);
+  const auto& labelStatementStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::LabelStatement);
+  const auto& labelReferenceStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::LabelReference);
+  const auto& integerLiteralStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::IntegerLiteral);
+  const auto& floatingLiteralStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::FloatingLiteral);
+  const auto& imaginaryLiteralStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::ImaginaryLiteral);
+  const auto& stringLiteralStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::StringLiteral);
+  const auto& characterLiteralStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::CharacterLiteral);
+  const auto& preprocessorDirectiveStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::PreprocessorDirective);
+  const auto& includePathStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::IncludePath);
+  const auto& namespaceDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::NamespaceDefinition);
+  const auto& namespaceUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::NamespaceUse);
   
   bool addContext = false;
   

@@ -124,6 +124,7 @@ add_library(CIDEBaseLib SHARED
   src/cide/document_widget_container.cc
   src/cide/find_and_replace_in_files.cc
   src/cide/git_diff.cc
+  src/cide/glsl_highlighting.cc
   src/cide/glsl_parser.cc
   src/cide/main_window.cc
   src/cide/new_project_dialog.cc

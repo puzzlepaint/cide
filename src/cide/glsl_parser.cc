@@ -43,6 +43,7 @@
 #include "glslang/Public/ShaderLang.h"
 
 #include "cide/document.h"
+#include "cide/glsl_highlighting.h"
 #include "cide/main_window.h"
 #include "cide/parse_thread_pool.h"
 #include "cide/qt_thread.h"
@@ -280,7 +281,7 @@ void ParseGLSLFile(const QString& /*canonicalPath*/, Document* document, MainWin
   }
   
   int parsedDocumentVersion = -1;
-  std::string documentContent;
+  QString documentContentQString;
   std::string documentFilePath;
   std::vector<unsigned> lineOffsets;
   bool exit = false;
@@ -295,7 +296,7 @@ void ParseGLSLFile(const QString& /*canonicalPath*/, Document* document, MainWin
     }
     
     parsedDocumentVersion = document->version();
-    documentContent = document->GetDocumentText().toStdString();
+    documentContentQString = document->GetDocumentText();
     documentFilePath = QFileInfo(document->path()).canonicalFilePath().toStdString();
     
     // Get the newline positions of the main file to be able to map the "line, column"
@@ -365,6 +366,7 @@ void ParseGLSLFile(const QString& /*canonicalPath*/, Document* document, MainWin
   // Parse the file
   glslang::TShader shader(shaderStage);
   
+  std::string documentContent = documentContentQString.toStdString();
   const char* sourceStrings = documentContent.c_str();
   int sourceLengths = documentContent.size();
   const char* sourceNames = documentFilePath.c_str();
@@ -390,7 +392,7 @@ void ParseGLSLFile(const QString& /*canonicalPath*/, Document* document, MainWin
   /*bool parseSuccess =*/ shader.parse(
       &resources,
       /*defaultVersion*/ 110,  // default shader version used when there is no "#version" in the shader itself
-      /*forwardCompatible*/ false,  // TODO: What does this do?
+      /*forwardCompatible*/ false,  // if true, use of deprecated features results in errors
       /*messages*/ static_cast<EShMessages>(EShMsgDefault | EShMsgSpvRules | EShMsgVulkanRules | EShMsgKeepUncalled));  // TODO: What are the best flags to use here? EShMsgRelaxedErrors? EShMsgCascadingErrors?
   
   // For debugging:
@@ -415,6 +417,11 @@ void ParseGLSLFile(const QString& /*canonicalPath*/, Document* document, MainWin
     // DocumentWidget* widget = mainWindow->GetWidgetForDocument(document);
     
     RetrieveDiagnostics(document, shader.getInfoLog(), lineOffsets);
+    
+    document->ClearHighlightRanges(/*layer*/ 0);
+    document->ClearContexts();
+    
+    AddGLSLHighlighting(document, documentContentQString, shader.getIntermediate(), lineOffsets);
   });
   if (exit) {
     return;

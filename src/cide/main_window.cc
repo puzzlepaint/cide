@@ -1825,7 +1825,7 @@ void MainWindow::UpdateBuildTargetSelector() {
     oldSelectedTargets = buildTargetSelector->GetSelectedTargets();
   }
   
-  buildTargetSelector->clear();
+  buildTargetSelector->ClearTargets();
   
   if (!project) {
     return;

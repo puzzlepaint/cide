@@ -16,7 +16,7 @@ class BuildTargetSelector : public QLineEdit {
   
   ~BuildTargetSelector();
   
-  void Clear();
+  void ClearTargets();
   void AddTarget(const QString& targetName, bool selected);
   QStringList GetSelectedTargets();
   

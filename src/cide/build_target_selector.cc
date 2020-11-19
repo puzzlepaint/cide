@@ -27,7 +27,7 @@ BuildTargetSelector::~BuildTargetSelector() {
   delete mTargetListWidget;
 }
 
-void BuildTargetSelector::Clear() {
+void BuildTargetSelector::ClearTargets() {
   mTargetListWidget->clear();
 }
 

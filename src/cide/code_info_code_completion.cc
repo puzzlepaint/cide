@@ -287,15 +287,20 @@ QString PrintRequiredScopeQualifiers(QString scopeAtAccessLocation, const QStrin
   return accessedScope.mid(commonPrefixLen);
 }
 
-QString PrintTypeForImplementationCompletion(CXType type, const QString& currentScope) {
-  // If this is an array type, split off the array bracket [] and print the
-  // underlying type.
+QString PrintTypeForImplementationCompletion(CXType type, const QString& currentScope, QString* arraySizes) {
+  // If this is an array type, query the element type and get the array size(s) into arraySizesString.
+  // Then, continue to print the element type. The array sizes need to be appended to the parameter name, not to its type,
+  // so they are stored separately in arraySizes.
   CXType arrayElemType = clang_getArrayElementType(type);
-  if (arrayElemType.kind != CXType_Invalid) {
-    QString typeSpelling = ClangString(clang_getTypeSpelling(type)).ToQString();
-    int openArrayBracketPos = typeSpelling.lastIndexOf('[');
-    if (openArrayBracketPos > 0) {
-      return PrintTypeForImplementationCompletion(arrayElemType, currentScope) + typeSpelling.mid(openArrayBracketPos);
+  while (arrayElemType.kind != CXType_Invalid) {
+    long long arraySize = clang_getArraySize(type);
+    type = arrayElemType;
+    
+    if (arraySize == -1) {
+      break;
+    } else {
+      *arraySizes += QStringLiteral("[") + QString::number(arraySize) + QStringLiteral("]");
+      arrayElemType = clang_getArrayElementType(type);
     }
   }
   
@@ -351,7 +356,7 @@ QString PrintTypeForImplementationCompletion(CXType type, const QString& current
         if (argPos > replacementPos) {
           replacedNonLinkTypeSpelling += nonLinkTypeSpelling.mid(replacementPos, argPos - replacementPos);
         }
-        replacedNonLinkTypeSpelling += PrintTypeForImplementationCompletion(argType, currentScope);
+        replacedNonLinkTypeSpelling += PrintTypeForImplementationCompletion(argType, currentScope, arraySizes);
         replacementPos = argPos + argSpelling.size();
       }
     }
@@ -372,13 +377,13 @@ QString PrintTypeForImplementationCompletion(CXType type, const QString& current
   if (type.kind == CXType_Pointer) {
     CXType pointeeType = clang_getPointeeType(type);
     if (pointeeType.kind != CXType_Invalid) {
-      return PrintTypeForImplementationCompletion(pointeeType, currentScope) + QStringLiteral("*");
+      return PrintTypeForImplementationCompletion(pointeeType, currentScope, arraySizes) + QStringLiteral("*");
     }
   } else if (type.kind == CXType_RValueReference ||
              type.kind == CXType_LValueReference) {
     CXType pointeeType = clang_getPointeeType(type);
     if (pointeeType.kind != CXType_Invalid) {
-      return PrintTypeForImplementationCompletion(pointeeType, currentScope) + ((type.kind == CXType_LValueReference) ? QStringLiteral("&") : QStringLiteral("&&"));
+      return PrintTypeForImplementationCompletion(pointeeType, currentScope, arraySizes) + ((type.kind == CXType_LValueReference) ? QStringLiteral("&") : QStringLiteral("&&"));
     }
   }
   
@@ -509,7 +514,8 @@ CXChildVisitResult VisitClangAST_FindUnimplementedFunctions(CXCursor cursor, CXC
   
   if (kind != CXCursor_Constructor &&
       kind != CXCursor_Destructor) {
-    completionString += PrintTypeForImplementationCompletion(clang_getCursorResultType(cursor), data->invocationScopeQualifiers) + QStringLiteral(" ");
+    QString arraySizes;
+    completionString += PrintTypeForImplementationCompletion(clang_getCursorResultType(cursor), data->invocationScopeQualifiers, &arraySizes) + arraySizes + QStringLiteral(" ");
   }
   qualifiedFunctionName = definitionQualifiers + functionName;
   completionString += qualifiedFunctionName + QStringLiteral("(");
@@ -528,9 +534,10 @@ CXChildVisitResult VisitClangAST_FindUnimplementedFunctions(CXCursor cursor, CXC
       QString argName = QString::fromUtf8(clang_getCString(argSpelling));
       clang_disposeString(argSpelling);
       
-      argsString += PrintTypeForImplementationCompletion(clang_getCursorType(argCursor), declarationQualifiers);
+      QString arraySizes;
+      argsString += PrintTypeForImplementationCompletion(clang_getCursorType(argCursor), declarationQualifiers, &arraySizes);
       argsString += " ";
-      argsString += argName;
+      argsString += argName + arraySizes;
     }
   }
   if (clang_Cursor_isVariadic(cursor)) {

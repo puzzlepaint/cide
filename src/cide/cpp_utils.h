@@ -23,6 +23,9 @@ bool GuessIsHeader(const QString& path, bool* certain);
 /// Returns whether the file with the given path is a CUDA source file.
 bool IsCUDAFile(const QString& path);
 
+/// Returns whether the file with the given path is a GLSL shader source file.
+bool IsGLSLFile(const QString& path);
+
 /// Tries to find the corresponding header or source file for the file with the
 /// given path. Returns an empty string if no corresponding file was found.
 QString FindCorrespondingHeaderOrSource(const QString& path, const std::vector<std::shared_ptr<Project>>& projects);

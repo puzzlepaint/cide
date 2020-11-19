@@ -78,8 +78,26 @@ bool GuessIsHeader(const QString& path, bool* certain) {
 }
 
 bool IsCUDAFile(const QString& path) {
-  return path.endsWith(QStringLiteral(".cu"), Qt::CaseInsensitive) ||
-         path.endsWith(QStringLiteral(".cuh"), Qt::CaseInsensitive);
+  return path.endsWith(QStringLiteral(".cu"), Qt::CaseInsensitive) ||  // CUDA source file
+         path.endsWith(QStringLiteral(".cuh"), Qt::CaseInsensitive);   // CUDA header file
+}
+
+bool IsGLSLFile(const QString& path) {
+  return path.endsWith(QStringLiteral(".vert"), Qt::CaseInsensitive) ||   // vertex shader
+         path.endsWith(QStringLiteral(".tesc"), Qt::CaseInsensitive) ||   // tessellation control shader
+         path.endsWith(QStringLiteral(".tese"), Qt::CaseInsensitive) ||   // tessellation evaluation shader
+         path.endsWith(QStringLiteral(".geom"), Qt::CaseInsensitive) ||   // geometry shader
+         path.endsWith(QStringLiteral(".frag"), Qt::CaseInsensitive) ||   // fragment shader
+         path.endsWith(QStringLiteral(".comp"), Qt::CaseInsensitive) ||   // compute shader
+         path.endsWith(QStringLiteral(".rgen"), Qt::CaseInsensitive) ||   // ray generation
+         path.endsWith(QStringLiteral(".rint"), Qt::CaseInsensitive) ||   // ray intersection
+         path.endsWith(QStringLiteral(".rahit"), Qt::CaseInsensitive) ||  // ray any hit
+         path.endsWith(QStringLiteral(".rchit"), Qt::CaseInsensitive) ||  // ray closest hit
+         path.endsWith(QStringLiteral(".rmiss"), Qt::CaseInsensitive) ||  // ray miss
+         path.endsWith(QStringLiteral(".rcall"), Qt::CaseInsensitive) ||  // ray callable
+         path.endsWith(QStringLiteral(".mesh"), Qt::CaseInsensitive) ||   // mesh
+         path.endsWith(QStringLiteral(".task"), Qt::CaseInsensitive) ||   // task
+         path.endsWith(QStringLiteral(".glsl"), Qt::CaseInsensitive);     // <stage>.glsl, with <stage> being one of the above
 }
 
 QString FindCorrespondingHeaderOrSource(const QString& path, const std::vector<std::shared_ptr<Project>>& projects) {
@@ -90,6 +108,7 @@ QString FindCorrespondingHeaderOrSource(const QString& path, const std::vector<s
   
   bool isHeader = GuessIsHeader(path, nullptr);
   bool isCUDAFile = IsCUDAFile(path);
+  bool isGLSLFile = IsGLSLFile(path);
   
   QStringList candidates;
   
@@ -102,6 +121,9 @@ QString FindCorrespondingHeaderOrSource(const QString& path, const std::vector<s
       if (GuessIsHeader(candidate, nullptr) != isHeader) {
         bestCandidate = candidate;
         if (isCUDAFile == IsCUDAFile(candidate)) {
+          break;
+        }
+        if (isGLSLFile == IsGLSLFile(candidate)) {
           break;
         }
       }

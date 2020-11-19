@@ -9,6 +9,10 @@ CIDE aims to be a lightweight and fast IDE for C/C++, focusing on:
     * Hovering a variable/function call/etc. gives extensive information
     * On-the-fly member list for classes / structs
 
+CIDE contains extensive support for C/C++ thanks to using libclang.
+CUDA is supported to varying degrees depending on how well the libclang and CUDA versions on the system work together.
+There is also initial, very basic support for GLSL shaders.
+
 See the more comprehensive overview of features below.
 
 
@@ -69,6 +73,8 @@ Before using them, please also read the recommended setup steps below:
 
 
 ### Building ###
+
+Before building, make sure to check out glslang, which is included in the repository as a git submodule.
 
 The following build dependencies must be present:
 

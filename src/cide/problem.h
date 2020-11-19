@@ -63,6 +63,10 @@ class Problem {
     DocumentRange range;
   };
   
+  /// Creates a generic problem.
+  /// Line and column are 1-based.
+  Problem(Type type, unsigned line, unsigned col, unsigned offset, const QString& text, const QString& filePath);
+  
   /// Creates a problem for a libclang diagnostic.
   Problem(CXDiagnostic diagnostic, CXTranslationUnit tu, const std::vector<unsigned>& lineOffsets);
   

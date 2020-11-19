@@ -18,6 +18,13 @@ class DocumentWidget;
 class MainWindow;
 
 struct ParseRequest {
+  enum class Language {
+    // C or C++
+    CorCXX = 0,
+    
+    GLSL
+  };
+  
   enum class Mode {
     /// If the document is open and has not been parsed yet, parse it normally.
     /// Otherwise, index it only.
@@ -30,6 +37,7 @@ struct ParseRequest {
     ParseIfOpen
   };
   
+  Language language;
   Mode mode;
   std::shared_ptr<Document> document;
   QString canonicalPath;
@@ -43,8 +51,9 @@ class ParseThreadPool : public QObject {
  public:
   static ParseThreadPool& Instance();
   
-  void RequestParse(const std::shared_ptr<Document>& document, DocumentWidget* widget, MainWindow* mainWindow);
+  void RequestParse(const std::shared_ptr<Document>& document, ParseRequest::Language language, DocumentWidget* widget, MainWindow* mainWindow);
   
+  /// Assumes C/C++ language.
   void RequestParseIfOpenElseIndex(const QString& canonicalPath, MainWindow* mainWindow);
   
   /// Notifies the ParseThreadPool about the current and open documents, which

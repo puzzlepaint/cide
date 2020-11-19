@@ -7,6 +7,7 @@
 #include "cide/clang_parser.h"
 #include "cide/document.h"
 #include "cide/document_widget.h"
+#include "cide/glsl_parser.h"
 #include "cide/main_window.h"
 #include "cide/qt_thread.h"
 
@@ -30,7 +31,7 @@ ParseThreadPool& ParseThreadPool::Instance() {
   return instance;
 }
 
-void ParseThreadPool::RequestParse(const std::shared_ptr<Document>& document, DocumentWidget* widget, MainWindow* mainWindow) {
+void ParseThreadPool::RequestParse(const std::shared_ptr<Document>& document, ParseRequest::Language language, DocumentWidget* widget, MainWindow* mainWindow) {
   std::unique_lock<std::mutex> lock(parseRequestMutex);
   for (const ParseRequest& request : parseRequests) {
     if (request.document.get() == document.get()) {
@@ -40,6 +41,7 @@ void ParseThreadPool::RequestParse(const std::shared_ptr<Document>& document, Do
   }
   
   ParseRequest newRequest;
+  newRequest.language = language;
   newRequest.mode = ParseRequest::Mode::ParseIfOpen;
   newRequest.document = document;
   newRequest.canonicalPath = document->path();
@@ -55,6 +57,7 @@ void ParseThreadPool::RequestParseIfOpenElseIndex(const QString& canonicalPath, 
   std::unique_lock<std::mutex> lock(parseRequestMutex);
   
   ParseRequest newRequest;
+  newRequest.language = ParseRequest::Language::CorCXX;
   newRequest.mode = ParseRequest::Mode::ParseIfOpenElseIndex;
   newRequest.canonicalPath = canonicalPath;
   newRequest.document = nullptr;
@@ -199,12 +202,18 @@ void ParseThreadPool::ThreadMain() {
     lock.unlock();
     
     // Perform the parsing.
-    if (request.mode == ParseRequest::Mode::ParseIfOpen || /* TODO ) {
-      ParseFile(request.document ? request.document.get() : nullptr, request.mainWindow);
-    } else if (*/ request.mode == ParseRequest::Mode::ParseIfOpenElseIndex) {
-      ParseFileIfOpenElseIndex(request.canonicalPath, request.document ? request.document.get() : nullptr, request.mainWindow);
+    if (request.language == ParseRequest::Language::CorCXX) {
+      if (request.mode == ParseRequest::Mode::ParseIfOpen || /* TODO ) {
+        ParseFile(request.document ? request.document.get() : nullptr, request.mainWindow);
+      } else if (*/ request.mode == ParseRequest::Mode::ParseIfOpenElseIndex) {
+        ParseFileIfOpenElseIndex(request.canonicalPath, request.document ? request.document.get() : nullptr, request.mainWindow);
+      } else {
+        qDebug() << "Error: Parse request mode not handled:" << static_cast<int>(request.mode);
+      }
+    } else if (request.language == ParseRequest::Language::GLSL) {
+      ParseGLSLFile(request.canonicalPath, request.document ? request.document.get() : nullptr, request.mainWindow);
     } else {
-      qDebug() << "Error: Parse request mode not handled:" << static_cast<int>(request.mode);
+      qDebug() << "Error: Parse request language not handled:" << static_cast<int>(request.language);
     }
     
     if (request.document && request.widget) {

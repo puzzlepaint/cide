@@ -40,6 +40,9 @@ find_package(Qt5 REQUIRED COMPONENTS Widgets Help Svg)
 # External dependency: libgit2
 find_package(Libgit2 REQUIRED)
 
+# Packaged dependency: glslang
+add_subdirectory(third_party/glslang)
+
 # Packaged dependency: YAML-CPP
 add_subdirectory(third_party/yaml-cpp-0.6.3)
 
@@ -121,6 +124,7 @@ add_library(CIDEBaseLib SHARED
   src/cide/document_widget_container.cc
   src/cide/find_and_replace_in_files.cc
   src/cide/git_diff.cc
+  src/cide/glsl_parser.cc
   src/cide/main_window.cc
   src/cide/new_project_dialog.cc
   src/cide/parse_thread_pool.cc
@@ -156,6 +160,7 @@ target_link_libraries(CIDEBaseLib
   Qt5::Svg
   yaml-cpp
   ${CLANG_CLANG_LIB}
+  glslang
   ${LIBGIT2_LIBRARIES}
   Threads::Threads
 )

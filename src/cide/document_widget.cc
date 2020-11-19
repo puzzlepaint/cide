@@ -1158,18 +1158,27 @@ void DocumentWidget::FixAll() {
 }
 
 void DocumentWidget::CheckFileType() {
-  if (GuessIsCFile(document->path())) {
+  if (IsGLSLFile(document->path())) {
+    if (!isGLSLFile) {
+      parseTimer->start(0);
+    }
+    
+    isCFile = false;
+    isGLSLFile = true;
+  } else if (GuessIsCFile(document->path())) {
     if (!isCFile) {
       parseTimer->start(0);
     }
     
     isCFile = true;
+    isGLSLFile = false;
   } else {
-    if (isCFile) {
+    if (isCFile || isGLSLFile) {
       document->ClearHighlightRanges(0);
     }
     
     isCFile = false;
+    isGLSLFile = false;
   }
 }
 
@@ -1179,8 +1188,8 @@ void DocumentWidget::StartParseTimer() {
 }
 
 void DocumentWidget::ParseFile() {
-  if (isCFile) {
-    ParseThreadPool::Instance().RequestParse(document, this, mainWindow);
+  if (isCFile || isGLSLFile) {
+    ParseThreadPool::Instance().RequestParse(document, isGLSLFile ? ParseRequest::Language::GLSL : ParseRequest::Language::CorCXX, this, mainWindow);
   }
   
   // TODO: Rename function? ParseFile() does not fit anymore.
@@ -3464,8 +3473,8 @@ void DocumentWidget::focusOutEvent(QFocusEvent* /*event*/) {
 
 void DocumentWidget::showEvent(QShowEvent* /*event*/) {
   if (reparseOnNextActivation) {
-    if (isCFile) {
-      ParseThreadPool::Instance().RequestParse(document, this, mainWindow);
+    if (isCFile || isGLSLFile) {
+      ParseThreadPool::Instance().RequestParse(document, isGLSLFile ? ParseRequest::Language::GLSL : ParseRequest::Language::CorCXX, this, mainWindow);
     }
     reparseOnNextActivation = false;
   }

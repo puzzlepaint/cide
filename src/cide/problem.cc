@@ -6,6 +6,19 @@
 
 #include "cide/clang_utils.h"
 
+Problem::Problem(Type type, unsigned line, unsigned col, unsigned offset, const QString& text, const QString& filePath) {
+  mType = type;
+  
+  mItems.emplace_back();
+  Item& item = mItems.back();
+  
+  item.text = text;
+  item.filePath = filePath;
+  item.line = line;
+  item.col = col;
+  item.offset = offset;
+}
+
 Problem::Problem(CXDiagnostic diagnostic, CXTranslationUnit tu, const std::vector<unsigned>& lineOffsets) {
   // Get severity
   CXDiagnosticSeverity severity = clang_getDiagnosticSeverity(diagnostic);

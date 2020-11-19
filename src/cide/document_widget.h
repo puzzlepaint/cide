@@ -419,6 +419,7 @@ class DocumentWidget : public QWidget {
   int spacesPerTab = 2;
   
   bool isCFile = false;
+  bool isGLSLFile = false;
   QTimer* parseTimer;
   bool reparseOnNextActivation = false;
   

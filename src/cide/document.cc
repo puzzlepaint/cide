@@ -1013,7 +1013,7 @@ bool Document::Redo(DocumentRange* newTextRange) {
   return UndoRedoImpl(true, newTextRange);
 }
 
-void Document::setPath(const QString &path) {
+void Document::setPath(const QString& path) {
   // Lazily create the file watcher if it does not exist yet
   if (!watcher) {
     RunInQtThreadBlocking([&]() {
@@ -1027,6 +1027,13 @@ void Document::setPath(const QString &path) {
     watcher->removePath(mPath);
   }
   mPath = QFileInfo(path).canonicalFilePath();
+  if (mPath.isEmpty()) {
+    // canonicalFilePath() returns an empty string for files that do not exist.
+    // However, we have to set the given path for SaveAs() to work for creating new files.
+    // Document::Save() will call setPath() again after creating the file, which will then
+    // retrieve the canonical path.
+    mPath = path;
+  }
   if (!mPath.isEmpty()) {
     watcher->addPath(mPath);
   }

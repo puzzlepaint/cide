@@ -1759,9 +1759,13 @@ void MainWindow::BuildOutputWidgetClosed() {
 
 void MainWindow::StopBuilding() {
   if (buildProcess) {
-    // This triggers the "crash" signal, which removes the build widgets from
-    // the status bar. So, no need to call FinishedBuilding().
-    buildProcess->kill();
+    buildProcess->terminate();
+    
+    if (!buildProcess->waitForFinished(250)) {
+      // This triggers the "crash" signal, which removes the build widgets from
+      // the status bar. So, no need to call FinishedBuilding().
+      buildProcess->kill();
+    }
   }
 }
 

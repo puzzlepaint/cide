@@ -682,6 +682,19 @@ QString PrintClass(
     }
   }
   
+  // Determine the size of the class type
+  long long size = clang_Type_getSizeOf(clang_getCursorType(definition));
+  QString sizeString;
+  if (size == CXTypeLayoutError_Invalid) {
+    sizeString = QObject::tr("invalid");
+  } else if (size == CXTypeLayoutError_Incomplete) {
+    sizeString = QObject::tr("incomplete");
+  } else if (size == CXTypeLayoutError_Dependent) {
+    sizeString = QObject::tr("dependent");
+  } else {
+    sizeString = QObject::tr("%1 bytes").arg(QString::number(size));
+  }
+  
   // Build the HTML.
   return (clang_CXXRecord_isAbstract(definition) ? QStringLiteral("abstract ") : "") +
          recordTypeString + " " +
@@ -689,6 +702,7 @@ QString PrintClass(
          (accessString.isEmpty() ? "" : ("<br/><br/>" + accessString)) +
          (USRString.isEmpty() ? (isDefinition ? "" : ("<br/><br/>" + PrintLinkToDefinitionOrDeclarationLocation(definition))) : ("<br/><br/>" + USRString)) +
          (commentString.isEmpty() ? "" : ("<br/><br/><i>" + commentString + "</i>")) +
+         (sizeString.isEmpty() ? "" : ("<br/><br/>Size: " + sizeString)) +
          membersString;
 }
 

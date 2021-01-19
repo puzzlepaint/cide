@@ -396,11 +396,14 @@ class GLSLTraverser : public glslang::TIntermTraverser {
     case EOpSubgroupPartitionedExclusiveXor:
     case EOpSubpassLoad:
     case EOpSubpassLoadMS:
-    case EOpTrace:
+    // case EOpTrace:
     case EOpReportIntersection:
-    case EOpIgnoreIntersection:
-    case EOpTerminateRay:
-    case EOpExecuteCallable:
+    case EOpIgnoreIntersectionNV:
+    case EOpIgnoreIntersectionKHR:
+    case EOpTerminateRayNV:
+    case EOpTerminateRayKHR:
+    case EOpExecuteCallableNV:
+    case EOpExecuteCallableKHR:
     case EOpWritePackedPrimitiveIndices4x8NV:
     case EOpRayQueryInitialize:
     case EOpRayQueryTerminate:

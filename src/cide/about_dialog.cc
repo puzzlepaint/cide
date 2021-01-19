@@ -380,7 +380,7 @@ the License, but only in their entirety and only with respect to the Combined
 Software.)LICENSETEXT").toHtmlEscaped().replace('\n', "<br/>").replace(' ', "&nbsp;");
     } else if (urlString == "license://glslang") {
       return QStringLiteral("<h3>glslang</h3>") +
-QString::fromLocal8Bit(R"LICENSETEXT(
+(QString::fromLocal8Bit(R"LICENSETEXT(
 Here, glslang proper means core GLSL parsing, HLSL parsing, and SPIR-V code
 generation. Glslang proper requires use of a number of licenses, one that covers
 preprocessing and others that covers non-preprocessing.
@@ -662,8 +662,8 @@ APACHE LICENSE, VERSION 2.0
       boilerplate notice, with the fields enclosed by brackets "[]"
       replaced with your own identifying information. (Don't include
       the brackets!)  The text should be enclosed in the appropriate
-      comment syntax for the file format. We also recommend that a
-      file or class name and description of purpose be included on the
+      comment syntax for the file format. We also recommend that a)LICENSETEXT") +
+QString::fromLocal8Bit(R"LICENSETEXT(      file or class name and description of purpose be included on the
       same "printed page" as the copyright notice for easier
       identification within third-party archives.
 
@@ -765,7 +765,7 @@ NVIDIA SOFTWARE, HOWEVER CAUSED AND WHETHER UNDER THEORY OF CONTRACT,
 TORT (INCLUDING NEGLIGENCE), STRICT LIABILITY OR OTHERWISE, EVEN IF
 NVIDIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 \****************************************************************************/
-)LICENSETEXT").toHtmlEscaped().replace('\n', "<br/>").replace(' ', "&nbsp;");
+)LICENSETEXT")).toHtmlEscaped().replace('\n', "<br/>").replace(' ', "&nbsp;");
     } else if (urlString == "license://qt5") {
       return tr("<h3>Qt5</h3>Qt license information is shown as a dialog. Qt is used under the GNU LGPL licensing option.");
     } else if (urlString == "license://libgit2") {

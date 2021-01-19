@@ -98,7 +98,7 @@ add_custom_command(
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
-add_library(CIDEBaseLib SHARED
+set(CIDEBaseLib_SRC
   ${CMAKE_BINARY_DIR}/CIDE_git_version.h
   
   src/cide/about_dialog.cc
@@ -147,6 +147,45 @@ add_library(CIDEBaseLib SHARED
   src/cide/text_block.cc
   src/cide/text_utils.cc
   src/cide/util.cc
+)
+# Not sure why this bad workaround is needed on Windows, maybe the functions
+# in this part of glslang lack the dllexport pragma?
+if (WIN32)
+  set(CIDEBaseLib_SRC
+    ${CIDEBaseLib_SRC}
+    third_party/glslang/glslang/MachineIndependent/glslang.m4
+    third_party/glslang/glslang/MachineIndependent/glslang.y
+    third_party/glslang/glslang/MachineIndependent/glslang_tab.cpp
+    third_party/glslang/glslang/MachineIndependent/attribute.cpp
+    third_party/glslang/glslang/MachineIndependent/Constant.cpp
+    third_party/glslang/glslang/MachineIndependent/iomapper.cpp
+    third_party/glslang/glslang/MachineIndependent/InfoSink.cpp
+    third_party/glslang/glslang/MachineIndependent/Initialize.cpp
+    third_party/glslang/glslang/MachineIndependent/IntermTraverse.cpp
+    third_party/glslang/glslang/MachineIndependent/Intermediate.cpp
+    third_party/glslang/glslang/MachineIndependent/ParseContextBase.cpp
+    third_party/glslang/glslang/MachineIndependent/ParseHelper.cpp
+    third_party/glslang/glslang/MachineIndependent/PoolAlloc.cpp
+    third_party/glslang/glslang/MachineIndependent/RemoveTree.cpp
+    third_party/glslang/glslang/MachineIndependent/Scan.cpp
+    third_party/glslang/glslang/MachineIndependent/ShaderLang.cpp
+    third_party/glslang/glslang/MachineIndependent/SymbolTable.cpp
+    third_party/glslang/glslang/MachineIndependent/Versions.cpp
+    third_party/glslang/glslang/MachineIndependent/intermOut.cpp
+    third_party/glslang/glslang/MachineIndependent/limits.cpp
+    third_party/glslang/glslang/MachineIndependent/linkValidate.cpp
+    third_party/glslang/glslang/MachineIndependent/parseConst.cpp
+    third_party/glslang/glslang/MachineIndependent/reflection.cpp
+    third_party/glslang/glslang/MachineIndependent/preprocessor/Pp.cpp
+    third_party/glslang/glslang/MachineIndependent/preprocessor/PpAtom.cpp
+    third_party/glslang/glslang/MachineIndependent/preprocessor/PpContext.cpp
+    third_party/glslang/glslang/MachineIndependent/preprocessor/PpScanner.cpp
+    third_party/glslang/glslang/MachineIndependent/preprocessor/PpTokens.cpp
+    third_party/glslang/glslang/MachineIndependent/propagateNoContraction.cpp
+  )
+endif()
+add_library(CIDEBaseLib SHARED
+  ${CIDEBaseLib_SRC}
 )
 target_include_directories(CIDEBaseLib PUBLIC
   src

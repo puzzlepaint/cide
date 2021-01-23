@@ -506,11 +506,24 @@ class GLSLTraverser : public glslang::TIntermTraverser {
     const auto& variableUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::VariableUse);
     const Settings::ConfigurableTextStyle* style = isDefinition ? &variableDefinitionStyle : &variableUseStyle;
     
+    // Heuristic: If the first character of the name range that we obtain is '(',
+    // then search backwards for the name. This tries to find the correct ranges for
+    // function parameter definitions, for which the loc is on the closing brace of the function definition.
+    DocumentRange nameRange = GetNameRange(node);
+    if (nameRange.start < documentContent.size() && documentContent[nameRange.start.offset] == ')') {
+      QString name = QString::fromUtf8(node->getName().c_str());
+      int rangeStart = documentContent.lastIndexOf(name, nameRange.start.offset - 1, Qt::CaseSensitive);
+      if (rangeStart >= 0) {
+        nameRange = DocumentRange(rangeStart, rangeStart + name.size());
+      }
+    }
+    qDebug() << "Symbol named " << QString::fromUtf8(node->getName().c_str()) << " has range: " << documentContent.mid(nameRange.start.offset, nameRange.end.offset - nameRange.start.offset);
+    
     if (perVariableColoring) {
       // We usually override the text color, but do override the background color instead if the style does not affect the text color.
-      document->AddHighlightRange(GetNameRange(node), false, overrideColor, style->bold, style->affectsText, style->affectsBackground, style->affectsText ? style->backgroundColor : overrideColor);
+      document->AddHighlightRange(nameRange, false, overrideColor, style->bold, style->affectsText, style->affectsBackground, style->affectsText ? style->backgroundColor : overrideColor);
     } else {
-      document->AddHighlightRange(GetNameRange(node), false, *style);
+      document->AddHighlightRange(nameRange, false, *style);
     }
     
     // qDebug() << "Symbol: '" << node->getName().c_str() << "' (" << node->getCompleteString().c_str() << ") at: " << node->getLoc().line << ", " << node->getLoc().column;

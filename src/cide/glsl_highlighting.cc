@@ -58,15 +58,26 @@ class GLSLTraverser : public glslang::TIntermTraverser {
     case EOpComma:
       break;
     
-    case EOpFunction:
+    case EOpFunction: {
       variableCounterPerFunction = 0;
-      
+
       // For "main()", the loc is between the braces, and node->getName() is "main(".
-      range = GetNameRange(node);
-      range.start -= node->getName().size();
-      range.end -= node->getName().size() + 1;
-      document->AddHighlightRange(range, false, functionDefinitionStyle);
-      break;
+      // For a function with arguments, the name is something like "AtomicAddStore(vu4;vi2;i1;i1;".
+      // In general, the loc is right before the end brace, for example at the '|' in:
+      // int helper_function(int a, float b|)
+      // Thus, we heuristically search back from the loc to find the function name.
+      QString nodeName = QString::fromUtf8(node->getName().c_str());
+      int openBraceInNodeName = nodeName.indexOf('(');
+      if (openBraceInNodeName >= 0) {
+        nodeName = nodeName.mid(0, openBraceInNodeName);
+
+        range.start = documentContent.lastIndexOf(nodeName, LocToOffset(node->getLoc()), Qt::CaseSensitive);
+        if (range.start >= 0) {
+          range.end = range.start + nodeName.size();
+          document->AddHighlightRange(range, false, functionDefinitionStyle);
+        }
+      }
+      break; }
     
     case EOpFunctionCall:
     case EOpConstructFloat:

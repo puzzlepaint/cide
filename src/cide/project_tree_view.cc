@@ -22,6 +22,7 @@
 #include "cide/project_settings.h"
 #include "cide/util.h"
 
+/// Item delegate that uses a compact sizeHint() to avoid excessive item spacing.
 class ItemDelegate : public QItemDelegate {
  public:
   ItemDelegate(const QFontMetrics& fontMetrics, QObject* parent = Q_NULLPTR) :
@@ -73,7 +74,9 @@ void ProjectTreeView::Initialize(MainWindow* mainWindow, QAction* showProjectFil
   tree->setColumnCount(1);
   tree->setHeaderHidden(true);
   tree->setSelectionMode(QAbstractItemView::ExtendedSelection);
-  tree->setItemDelegate(new ItemDelegate(tree->fontMetrics(), tree));
+  #ifndef _WIN32
+    tree->setItemDelegate(new ItemDelegate(tree->fontMetrics(), tree));
+  #endif
   
   connect(tree, &QTreeWidget::itemExpanded, this, &ProjectTreeView::ItemExpanded);
   connect(tree, &QTreeWidget::itemCollapsed, this, &ProjectTreeView::ItemCollapsed);

@@ -1,3 +1,6 @@
 [submodule "third_party/glslang"]
 	path = third_party/glslang
 	url = git@github.com:KhronosGroup/glslang.git
+[submodule "third_party/yaml-cpp"]
+	path = third_party/yaml-cpp
+	url = git@github.com:jbeder/yaml-cpp.git

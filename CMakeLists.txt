@@ -44,7 +44,10 @@ find_package(Libgit2 REQUIRED)
 add_subdirectory(third_party/glslang)
 
 # Packaged dependency: YAML-CPP
-add_subdirectory(third_party/yaml-cpp-0.6.3)
+# Override YAML-CPP's option defaults to not build contrib and tools
+option(YAML_CPP_BUILD_CONTRIB "Enable yaml-cpp contrib in library" OFF)
+option(YAML_CPP_BUILD_TOOLS "Enable parse tools" OFF)
+add_subdirectory(third_party/yaml-cpp)
 
 # Packaged dependency: googletest
 add_subdirectory(third_party/googletest)
@@ -189,7 +192,7 @@ add_library(CIDEBaseLib SHARED
 )
 target_include_directories(CIDEBaseLib PUBLIC
   src
-  third_party/yaml-cpp-0.6.3/include
+  third_party/yaml-cpp/include
   ${gtest_SOURCE_DIR}/include
   ${CLANG_INCLUDE_DIRS}
   ${LIBGIT2_INCLUDE_DIR}

@@ -293,7 +293,7 @@ void RenameDialog::PerformSearch(SearchMode mode) {
             tr("<span style=\"color:gray;\">Line %1:</span> %2").arg(occ.line + 1).arg(
                 occ.lineText.left(occ.column).toHtmlEscaped() +
                 QStringLiteral("<b style=\"background-color:#efedec;\">") + occ.lineText.mid(occ.column, occ.length).toHtmlEscaped() + QStringLiteral("</b>") +
-                occ.lineText.right(occ.lineText.size() - (occ.column + occ.length)));
+                occ.lineText.right(occ.lineText.size() - (occ.column + occ.length)).toHtmlEscaped());
         QLabel* lineLabel = new QLabel(labelText);
         occurrencesTree->setItemWidget(lastLineItem, 0, lineLabel);
       }

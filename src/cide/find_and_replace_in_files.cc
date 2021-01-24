@@ -115,9 +115,8 @@ void FindAndReplaceInFiles::ShowDialog(const QString& initialPath) {
   findAndReplaceReplaceButton->setEnabled(false);
   
   QProgressDialog progress(tr("Searching in files..."), "Abort", 0, 0, mainWindow);
-  progress.setMinimumDuration(200);
-  progress.setValue(0);
   progress.setWindowModality(Qt::WindowModal);
+  progress.setMinimumDuration(200);
   
   // Count the number of files to search in to be able to show a progress estimate.
   // Also cache all the paths to the files to avoid iterating over the directories again.
@@ -128,6 +127,13 @@ void FindAndReplaceInFiles::ShowDialog(const QString& initialPath) {
   std::vector<QDir> doneList;
   std::vector<QDir> workList = {startDir};
   while (!workList.empty()) {
+    qDebug() << "workList iteration (size: " << workList.size() << ")";
+    progress.setValue(0);
+    // According to the documentation of QProgressDialog, it should call processEvents()
+    // itself during setValue() if set to modal, but that does not seem to be the case,
+    // at least if the progress dialog has an unspecified maximum value (maximum set to 0).
+    // Probably this is because the progress value always stays at 0 then.
+    QCoreApplication::processEvents();
     if (progress.wasCanceled()) {
       findAndReplaceResultsLabel->setText(tr("Search canceled."));
       return;

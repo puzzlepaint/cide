@@ -120,10 +120,7 @@ QString FindCorrespondingHeaderOrSource(const QString& path, const std::vector<s
       }
       if (GuessIsHeader(candidate, nullptr) != isHeader) {
         bestCandidate = candidate;
-        if (isCUDAFile == IsCUDAFile(candidate)) {
-          break;
-        }
-        if (isGLSLFile == IsGLSLFile(candidate)) {
+        if (isCUDAFile == IsCUDAFile(candidate) && isGLSLFile == IsGLSLFile(candidate)) {
           break;
         }
       }

@@ -475,6 +475,9 @@ void FindAndReplaceInFiles::ReplaceInFile(const QString& filePath, const QString
       lineText.replace(column, findText.size(), replacementText);
       
       column -= 1;
+      if (column < 0) {
+        break;
+      }
     }
     
     modifiedFileText += lineText;

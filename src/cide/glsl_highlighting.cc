@@ -66,6 +66,7 @@ class GLSLTraverser : public glslang::TIntermTraverser {
       // In general, the loc is right before the end brace, for example at the '|' in:
       // int helper_function(int a, float b|)
       // Thus, we heuristically search back from the loc to find the function name.
+      // TODO: This will fail if the function name is a part of a name of one of its parameters.
       QString nodeName = QString::fromUtf8(node->getName().c_str());
       int openBraceInNodeName = nodeName.indexOf('(');
       if (openBraceInNodeName >= 0) {
@@ -509,6 +510,7 @@ class GLSLTraverser : public glslang::TIntermTraverser {
     // Heuristic: If the first character of the name range that we obtain is '(',
     // then search backwards for the name. This tries to find the correct ranges for
     // function parameter definitions, for which the loc is on the closing brace of the function definition.
+    // TODO: This may fail if one parameter name is a part of another parameter name.
     DocumentRange nameRange = GetNameRange(node);
     if (nameRange.start < documentContent.size() && documentContent[nameRange.start.offset] == ')') {
       QString name = QString::fromUtf8(node->getName().c_str());

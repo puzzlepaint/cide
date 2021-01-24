@@ -74,7 +74,15 @@ Before using them, please also read the recommended setup steps below:
 
 ### Building ###
 
-Before building, make sure to check out glslang, which is included in the repository as a git submodule.
+Before building, make sure to check out the git submodules in the repository.
+To do so, either clone the repository with the `--recurse-submodules` option:
+```
+git clone --recurse-submodules <path>
+```
+Or, if the repository was already cloned, run:
+```
+git submodule update --init --recursive
+```
 
 The following build dependencies must be present:
 

@@ -466,19 +466,22 @@ bool Document::Save(const QString& path) {
     setPath(oldPath);  // return to old file on failure
     return false;
   }
-  
+
   for (int b = 0; b < mBlocks.size(); ++ b) {
     QByteArray utf8Data = mBlocks[b]->text().toUtf8();
     if (file.write(utf8Data) != utf8Data.size()) {
+      file.close();
       setPath(oldPath);  // return to old file on failure
       return false;
     }
   }
   
   file.close();
-  setPath(QFileInfo(pathCopy).canonicalFilePath());
-  mFileName = QFileInfo(pathCopy).fileName();
+  QFileInfo pathCopyFileInfo = QFileInfo(pathCopy);
+  setPath(pathCopyFileInfo.canonicalFilePath());
+  mFileName = pathCopyFileInfo.fileName();
   mSavedVersion = mVersion;
+  
   return true;
 }
 

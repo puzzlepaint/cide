@@ -24,9 +24,27 @@ class QMenu;
 class QTreeWidgetItem;
 class TreeWidgetWithRightClickSignal;
 
+struct ProjectGitStatus {
+  enum class FileStatus {
+    Modified = 0,
+    Untracked,
+
+    NotModified,
+    Invalid
+  };
+
+  QString branchName;
+
+  /// Maps the full canonical path of the file to its status
+  std::unordered_map<QString, FileStatus> fileStatuses;
+};
+
+typedef std::unordered_map<QString, std::shared_ptr<ProjectGitStatus>> ProjectGitStatusMap;
+
 /// Displays a file tree of the opened projects.
 class ProjectTreeView : public QObject {
  Q_OBJECT
+ friend class GitStatusWorkerThread;
  public:
   ~ProjectTreeView();
   void Initialize(MainWindow* mainWindow, QAction* showProjectFilesDockAction, FindAndReplaceInFiles* findAndReplaceInFiles);
@@ -68,22 +86,10 @@ class ProjectTreeView : public QObject {
   
   void UpdateGitStatus();
   
+ private slots:
+  void HandleGitStatusResults(const ProjectGitStatusMap& projectGitStatuses);
+
  private:
-  struct ProjectGitStatus {
-    enum class FileStatus {
-      Modified = 0,
-      Untracked,
-      
-      NotModified,
-      Invalid
-    };
-    
-    QString branchName;
-    
-    /// Maps the full canonical path of the file to its status
-    std::unordered_map<QString, FileStatus> fileStatuses;
-  };
-  
   QTreeWidgetItem* InsertItemFor(QTreeWidgetItem* parentFolder, const QString& path, QTreeWidgetItem* prevItem = nullptr);
   QString GetItemPath(QTreeWidgetItem* item);
   QTreeWidgetItem* GetItemForPath(const QString& path, bool expandCollapsedDirs);
@@ -113,7 +119,7 @@ class ProjectTreeView : public QObject {
   
   QColor projectNeedingReconfigurationColor = qRgb(255, 255, 180);
   
-  std::unordered_map<QString, std::shared_ptr<ProjectGitStatus>> projectGitStatuses;
+  ProjectGitStatusMap projectGitStatuses;
   QFileSystemWatcher gitWatcher;
   QTimer gitUpdateTimer;
   

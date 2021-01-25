@@ -14,6 +14,7 @@
 #include <QInputDialog>
 #include <QItemDelegate>
 #include <QMessageBox>
+#include <QMetaType>
 #include <QTreeWidget>
 
 #include "cide/create_class.h"
@@ -22,8 +23,16 @@
 #include "cide/project_settings.h"
 #include "cide/util.h"
 
+Q_DECLARE_METATYPE(ProjectGitStatusMap);
+struct MetaTypeRegistrator {
+  MetaTypeRegistrator() {
+    qRegisterMetaType<ProjectGitStatusMap>();
+  }
+};
+
 /// Item delegate that uses a compact sizeHint() to avoid excessive item spacing.
 class ItemDelegate : public QItemDelegate {
+ Q_OBJECT
  public:
   ItemDelegate(const QFontMetrics& fontMetrics, QObject* parent = Q_NULLPTR) :
       QItemDelegate(parent),
@@ -38,6 +47,117 @@ class ItemDelegate : public QItemDelegate {
   
  private:
   QFontMetrics fontMetrics;
+};
+
+
+/// Worker thread to query the git status for the open projects
+class GitStatusWorkerThread : public QThread {
+ Q_OBJECT
+ public:
+  GitStatusWorkerThread(const std::vector<QString>& projectYAMLFilePaths, QObject* parent = nullptr)
+      : QThread(parent),
+        projectYAMLFilePaths(projectYAMLFilePaths) {
+    static MetaTypeRegistrator typeRegistrator;
+  }
+  
+  void run() override {
+    ProjectGitStatusMap projectGitStatuses;
+    
+    for (const auto& projectYAMLFilePath : projectYAMLFilePaths) {
+      QString projectPath = QFileInfo(projectYAMLFilePath).dir().path();
+      
+      // Open repository
+      git_repository* repo = nullptr;
+      int result = git_repository_open_ext(&repo, projectPath.toLocal8Bit(), GIT_REPOSITORY_OPEN_NO_SEARCH, nullptr);
+      std::shared_ptr<git_repository> repo_deleter(repo, [&](git_repository* repo){ git_repository_free(repo); });
+      if (result == GIT_ENOTFOUND) {
+        // There is no git repository at the project path.
+        continue;
+      } else if (result != 0) {
+        qDebug() << "Failed to open the git repository at" << projectPath << "(some possible reasons: repo corruption or system errors), libgit2 error code:" << result;
+        continue;
+      }
+      
+      if (git_repository_is_bare(repo)) {
+        continue;
+      }
+      
+      std::shared_ptr<ProjectGitStatus> projectStatus(new ProjectGitStatus());
+      projectGitStatuses[projectPath] = projectStatus;
+      
+      // Get the branch name for HEAD
+      git_reference* head = nullptr;
+      result = git_repository_head(&head, repo);
+      std::shared_ptr<git_reference> head_deleter(head, [&](git_reference* ref){ git_reference_free(ref); });
+      
+      if (result == GIT_EUNBORNBRANCH || result == GIT_ENOTFOUND) {
+        projectStatus->branchName = tr("(not on any branch)");
+      } else if (result != 0) {
+        qDebug() << "There was an error getting the branch for the git repository at" << projectPath << ", libgit2 error code:" << result;
+        continue;
+      } else {
+        projectStatus->branchName = QString::fromUtf8(git_reference_shorthand(head));
+      }
+      
+      // Get the working directory of the repository. Returned paths will be relative to this directory.
+      QDir workDir(QString::fromLocal8Bit(git_repository_workdir(repo)));
+      
+      // Query repository status (i.e.: lists of untracked files in working copy, and modified files between HEAD->index and index->worktree).
+      // We display the merged HEAD<->index and index<->worktree differences here.
+      git_status_options opts;
+      memset(&opts, 0, sizeof(git_status_options));
+      opts.version = GIT_STATUS_OPTIONS_INIT;
+      opts.show  = GIT_STATUS_SHOW_INDEX_AND_WORKDIR;
+      opts.flags = GIT_STATUS_OPT_INCLUDE_UNTRACKED |
+                   GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX;
+      git_status_list* status = nullptr;
+      result = git_status_list_new(&status, repo, &opts);
+      std::shared_ptr<git_status_list> status_deleter(status, [&](git_status_list* status){ git_status_list_free(status); });
+      if (result != 0) {
+        qDebug() << "There was an error getting the status list for the git repository at" << projectPath << ", libgit2 error code:" << result;
+        continue;
+      }
+      
+      int numStatusItems = git_status_list_entrycount(status);
+      for (int i = 0; i < numStatusItems; ++ i) {
+        const git_status_entry* s = git_status_byindex(status, i);
+        
+        if (s->index_to_workdir && s->status == GIT_STATUS_WT_NEW) {
+          // Untracked file.
+          QString filePath = QFileInfo(workDir.filePath(QString::fromLocal8Bit(s->index_to_workdir->old_file.path))).canonicalFilePath();
+          projectStatus->fileStatuses[filePath] = ProjectGitStatus::FileStatus::Untracked;
+        } else if (s->status == GIT_STATUS_CURRENT) {
+          // No changes to this file.
+          continue;
+        } else if ((s->status & GIT_STATUS_INDEX_NEW) ||
+                   (s->status & GIT_STATUS_INDEX_MODIFIED) ||
+                   (s->status & GIT_STATUS_INDEX_TYPECHANGE)) {
+          // Modified file (HEAD<->index).
+          const char* old_path = s->head_to_index->old_file.path;
+          const char* new_path = s->head_to_index->new_file.path;
+          QString filePath = QFileInfo(workDir.filePath(QString::fromLocal8Bit(old_path ? old_path : new_path))).canonicalFilePath();
+          projectStatus->fileStatuses[filePath] = ProjectGitStatus::FileStatus::Modified;
+        } else if (s->index_to_workdir &&
+                  ((s->status & GIT_STATUS_WT_MODIFIED) ||
+                   (s->status & GIT_STATUS_WT_TYPECHANGE) ||
+                   (s->status & GIT_STATUS_WT_RENAMED))) {
+          // Modified file (index<->worktree).
+          const char* old_path = s->index_to_workdir->old_file.path;
+          const char* new_path = s->index_to_workdir->new_file.path;
+          QString filePath = QFileInfo(workDir.filePath(QString::fromLocal8Bit(old_path ? old_path : new_path))).canonicalFilePath();
+          projectStatus->fileStatuses[filePath] = ProjectGitStatus::FileStatus::Modified;
+        }
+      }
+    }
+    
+    emit ResultReady(projectGitStatuses);
+  }
+  
+ signals:
+  void ResultReady(ProjectGitStatusMap projectGitStatuses);
+  
+ private:
+  std::vector<QString> projectYAMLFilePaths;
 };
 
 
@@ -634,6 +754,23 @@ void ProjectTreeView::DeleteSelectedItems() {
   }
 }
 
+void ProjectTreeView::UpdateGitStatus() {
+  std::vector<QString> projectYAMLFilePaths(mainWindow->GetProjects().size());
+  for (std::size_t i = 0; i < mainWindow->GetProjects().size(); ++ i) {
+    projectYAMLFilePaths[i] = mainWindow->GetProjects()[i]->GetYAMLFilePath();
+  }
+  
+  GitStatusWorkerThread* workerThread = new GitStatusWorkerThread(projectYAMLFilePaths, this);
+  connect(workerThread, &GitStatusWorkerThread::ResultReady, this, &ProjectTreeView::HandleGitStatusResults);
+  connect(workerThread, &GitStatusWorkerThread::finished, workerThread, &QObject::deleteLater);
+  workerThread->start();
+}
+
+void ProjectTreeView::HandleGitStatusResults(const ProjectGitStatusMap& projectGitStatuses) {
+  this->projectGitStatuses = projectGitStatuses;
+  UpdateHighlighting();
+}
+
 QTreeWidgetItem* ProjectTreeView::InsertItemFor(QTreeWidgetItem* parentFolder, const QString& path, QTreeWidgetItem* prevItem) {
   QString parentFolderPath = GetItemPath(parentFolder);
   QDir parentDir(parentFolderPath);
@@ -824,102 +961,7 @@ void ProjectTreeView::SetProjectMayRequireReconfiguration(QTreeWidgetItem* item,
   }
 }
 
-void ProjectTreeView::UpdateGitStatus() {
-  // TODO: Perform this in a background thread
-  
-  projectGitStatuses.clear();
-  
-  for (const auto& project : mainWindow->GetProjects()) {
-    QString projectPath = QFileInfo(project->GetYAMLFilePath()).dir().path();
-    
-    // Open repository
-    git_repository* repo = nullptr;
-    int result = git_repository_open_ext(&repo, projectPath.toLocal8Bit(), GIT_REPOSITORY_OPEN_NO_SEARCH, nullptr);
-    std::shared_ptr<git_repository> repo_deleter(repo, [&](git_repository* repo){ git_repository_free(repo); });
-    if (result == GIT_ENOTFOUND) {
-      // There is no git repository at the project path.
-      continue;
-    } else if (result != 0) {
-      qDebug() << "Failed to open the git repository at" << projectPath << "(some possible reasons: repo corruption or system errors), libgit2 error code:" << result;
-      continue;
-    }
-    
-    if (git_repository_is_bare(repo)) {
-      continue;
-    }
-    
-    std::shared_ptr<ProjectGitStatus> projectStatus(new ProjectGitStatus());
-    projectGitStatuses[projectPath] = projectStatus;
-    
-    // Get the branch name for HEAD
-    git_reference* head = nullptr;
-    result = git_repository_head(&head, repo);
-    std::shared_ptr<git_reference> head_deleter(head, [&](git_reference* ref){ git_reference_free(ref); });
-    
-    if (result == GIT_EUNBORNBRANCH || result == GIT_ENOTFOUND) {
-      projectStatus->branchName = tr("(not on any branch)");
-    } else if (result != 0) {
-      qDebug() << "There was an error getting the branch for the git repository at" << projectPath << ", libgit2 error code:" << result;
-      continue;
-    } else {
-      projectStatus->branchName = QString::fromUtf8(git_reference_shorthand(head));
-    }
-    
-    // Get the working directory of the repository. Returned paths will be relative to this directory.
-    QDir workDir(QString::fromLocal8Bit(git_repository_workdir(repo)));
-    
-    // Query repository status (i.e.: lists of untracked files in working copy, and modified files between HEAD->index and index->worktree).
-    // We display the merged HEAD<->index and index<->worktree differences here.
-    git_status_options opts;
-    memset(&opts, 0, sizeof(git_status_options));
-    opts.version = GIT_STATUS_OPTIONS_INIT;
-    opts.show  = GIT_STATUS_SHOW_INDEX_AND_WORKDIR;
-    opts.flags = GIT_STATUS_OPT_INCLUDE_UNTRACKED |
-                 GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX;
-    git_status_list* status = nullptr;
-    result = git_status_list_new(&status, repo, &opts);
-    std::shared_ptr<git_status_list> status_deleter(status, [&](git_status_list* status){ git_status_list_free(status); });
-    if (result != 0) {
-      qDebug() << "There was an error getting the status list for the git repository at" << projectPath << ", libgit2 error code:" << result;
-      continue;
-    }
-    
-    int numStatusItems = git_status_list_entrycount(status);
-    for (int i = 0; i < numStatusItems; ++ i) {
-      const git_status_entry* s = git_status_byindex(status, i);
-      
-      if (s->index_to_workdir && s->status == GIT_STATUS_WT_NEW) {
-        // Untracked file.
-        QString filePath = QFileInfo(workDir.filePath(QString::fromLocal8Bit(s->index_to_workdir->old_file.path))).canonicalFilePath();
-        projectStatus->fileStatuses[filePath] = ProjectGitStatus::FileStatus::Untracked;
-      } else if (s->status == GIT_STATUS_CURRENT) {
-        // No changes to this file.
-        continue;
-      } else if ((s->status & GIT_STATUS_INDEX_NEW) ||
-                 (s->status & GIT_STATUS_INDEX_MODIFIED) ||
-                 (s->status & GIT_STATUS_INDEX_TYPECHANGE)) {
-        // Modified file (HEAD<->index).
-        const char* old_path = s->head_to_index->old_file.path;
-        const char* new_path = s->head_to_index->new_file.path;
-        QString filePath = QFileInfo(workDir.filePath(QString::fromLocal8Bit(old_path ? old_path : new_path))).canonicalFilePath();
-        projectStatus->fileStatuses[filePath] = ProjectGitStatus::FileStatus::Modified;
-      } else if (s->index_to_workdir &&
-                 ((s->status & GIT_STATUS_WT_MODIFIED) ||
-                  (s->status & GIT_STATUS_WT_TYPECHANGE) ||
-                  (s->status & GIT_STATUS_WT_RENAMED))) {
-        // Modified file (index<->worktree).
-        const char* old_path = s->index_to_workdir->old_file.path;
-        const char* new_path = s->index_to_workdir->new_file.path;
-        QString filePath = QFileInfo(workDir.filePath(QString::fromLocal8Bit(old_path ? old_path : new_path))).canonicalFilePath();
-        projectStatus->fileStatuses[filePath] = ProjectGitStatus::FileStatus::Modified;
-      }
-    }
-  }
-  
-  UpdateHighlighting();
-}
-
-ProjectTreeView::ProjectGitStatus::FileStatus ProjectTreeView::GetFileStatusFor(QTreeWidgetItem* item) {
+ProjectGitStatus::FileStatus ProjectTreeView::GetFileStatusFor(QTreeWidgetItem* item) {
   QTreeWidgetItem* projectItem = item;
   while (projectItem->parent() && projectItem->parent() != tree->invisibleRootItem()) {
     projectItem = projectItem->parent();
@@ -937,3 +979,5 @@ ProjectTreeView::ProjectGitStatus::FileStatus ProjectTreeView::GetFileStatusFor(
   }
   return fileIt->second;
 }
+
+#include "project_tree_view.moc"

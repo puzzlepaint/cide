@@ -1400,7 +1400,7 @@ void DocumentWidget::MoveCursorRight(bool shiftHeld, bool controlHeld) {
   EndMovingCursor(shiftHeld);
 }
 
-void DocumentWidget::MoveCursorUpDown(int direction, bool shiftHeld) {
+void DocumentWidget::MoveCursorUpDown(int step, bool shiftHeld) {
   StartMovingCursor();
   
   // Map the cursor to the text
@@ -1415,15 +1415,8 @@ void DocumentWidget::MoveCursorUpDown(int direction, bool shiftHeld) {
   cursorX += charWidth * (cursorCol - col);
   
   // Go to the line above / below
-  if (direction < 0) {
-    -- cursorLine;
-    cursorLine = std::max(0, cursorLine);
-  } else if (direction > 0) {
-    ++ cursorLine;
-    cursorLine = std::min(static_cast<int>(layoutLines.size()) - 1, cursorLine);
-  } else {
-    qDebug() << "ERROR: MoveCursorUpDown(): direction must not be zero.";
-  }
+  cursorLine += step;
+  cursorLine = std::max(0, std::min(static_cast<int>(layoutLines.size()) - 1, cursorLine));
   
   // Find the location that best matches the x-coordinate
   QString lineText = document->TextForRange(layoutLines[cursorLine]);
@@ -3247,6 +3240,9 @@ void DocumentWidget::keyPressEvent(QKeyEvent* event) {
     MoveCursorUpDown(-1, shiftHeld);
   } else if (keyCode == Qt::Key_Down) {
     MoveCursorUpDown(1, shiftHeld);
+  } else if (keyCode == Qt::Key_PageUp || keyCode == Qt::Key_PageDown) {
+    int numLines = std::max(1, static_cast<int>((2.f / 3.f) * (height() / lineHeight) + 0.5f));
+    MoveCursorUpDown(((keyCode == Qt::Key_PageUp) ? -1 : 1) * numLines, shiftHeld);
   } else if (keyCode == Qt::Key_Home) {
     StartMovingCursor();
     

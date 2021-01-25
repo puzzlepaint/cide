@@ -199,7 +199,7 @@ class DocumentWidget : public QWidget {
   
   void MoveCursorLeft(bool shiftHeld, bool controlHeld);  // called when the left arrow key is pressed
   void MoveCursorRight(bool shiftHeld, bool controlHeld);  // called when the right arrow key is pressed
-  void MoveCursorUpDown(int direction, bool shiftHeld);  // called when the up / down arrow keys are pressed
+  void MoveCursorUpDown(int step, bool shiftHeld);  // called when the up / down arrow keys or page up / down are pressed
   
   void BlinkCursor();
   

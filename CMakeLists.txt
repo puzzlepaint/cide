@@ -26,6 +26,9 @@ endif()
 # https://cmake.org/cmake/help/latest/module/FindThreads.html
 find_package(Threads REQUIRED)
 
+# OpenMP
+find_package(OpenMP)
+
 # External dependency: libclang
 find_package(Clang REQUIRED)
 
@@ -197,7 +200,7 @@ target_include_directories(CIDEBaseLib PUBLIC
   ${CLANG_INCLUDE_DIRS}
   ${LIBGIT2_INCLUDE_DIR}
 )
-target_link_libraries(CIDEBaseLib
+target_link_libraries(CIDEBaseLib PUBLIC
   Qt5::Widgets
   Qt5::Help
   Qt5::Svg
@@ -207,6 +210,9 @@ target_link_libraries(CIDEBaseLib
   ${LIBGIT2_LIBRARIES}
   Threads::Threads
 )
+if (OpenMP_CXX_FOUND)
+  target_link_libraries(CIDEBaseLib PUBLIC OpenMP::OpenMP_CXX)
+endif()
 if (NOT WIN32)  # TODO: Is this dependent on windows, or on using clang?
   target_compile_options(CIDEBaseLib PUBLIC
     "$<$<COMPILE_LANGUAGE:CXX>:-Wall>"

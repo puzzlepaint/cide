@@ -48,7 +48,7 @@ void InitializeSymbolArray() {
   mutex.unlock();
 }
 
-void ComputeFuzzyTextMatch(const QString& text, const QString& item, FuzzyTextMatchScore* score) {
+void ComputeFuzzyTextMatch(const QString& text, const QString& lowercaseText, const QString& item, const QString& lowercaseItem, FuzzyTextMatchScore* score) {
   int textSize = text.size();
   
   score->matchedCharacters = 0;
@@ -64,22 +64,24 @@ void ComputeFuzzyTextMatch(const QString& text, const QString& item, FuzzyTextMa
     int pos = start;
     for (int c = 0; c < textSize; ++ c) {
       const QChar& filterTextChar = item[pos];
+      const QChar& filterTextCharLowercase = lowercaseItem[pos];
       const QChar& textChar = text[c];
+      const QChar& textCharLowercase = lowercaseText[c];
       
       // Case-sensitive match?
       if (filterTextChar == textChar) {
         ++ matchedCharacters;
       }
       // Case-insensitive match?
-      else if (filterTextChar.toLower() == textChar.toLower()) {
+      else if (filterTextCharLowercase == textCharLowercase) {
         ++ matchedCharacters;
         matchedCase = false;
       }
       // Order of characters swapped?
       else if (c < textSize - 1 &&
                 pos < size - 1 &&
-                item[pos + 1].toLower() == text[c].toLower() &&
-                item[pos].toLower() == text[c + 1].toLower()) {
+                lowercaseItem[pos + 1] == lowercaseText[c] &&
+                lowercaseItem[pos] == lowercaseText[c + 1]) {
         matchedCharacters += 2;
         ++ matchErrors;
         if (item[pos + 1] != text[c] ||
@@ -91,7 +93,7 @@ void ComputeFuzzyTextMatch(const QString& text, const QString& item, FuzzyTextMa
       }
       // Extra character in text?
       else if (c < textSize - 1 &&
-                filterTextChar.toLower() == text[c + 1].toLower()) {
+                filterTextCharLowercase == lowercaseText[c + 1]) {
         ++ matchErrors;
         ++ matchedCharacters;
         if (filterTextChar != text[c + 1]) {
@@ -102,7 +104,7 @@ void ComputeFuzzyTextMatch(const QString& text, const QString& item, FuzzyTextMa
       // Wrong character in text?
       else if (c < textSize - 1 &&
                 pos < size - 1 &&
-                item[pos + 1].toLower() == text[c + 1].toLower()) {
+                lowercaseItem[pos + 1] == lowercaseText[c + 1]) {
         ++ matchErrors;
         ++ matchedCharacters;
         if (item[pos + 1] != text[c + 1]) {
@@ -113,7 +115,7 @@ void ComputeFuzzyTextMatch(const QString& text, const QString& item, FuzzyTextMa
       }
       // Missing character in text?
       else if (pos < size - 1 &&
-                item[pos + 1].toLower() == textChar.toLower()) {
+                lowercaseItem[pos + 1] == textCharLowercase) {
         ++ matchErrors;
         ++ matchedCharacters;
         if (item[pos + 1] != textChar) {

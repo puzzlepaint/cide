@@ -30,6 +30,7 @@ struct SearchListItem {
       : type(type),
         displayText(displayText),
         filterText(filterText),
+        filterTextLowercase(filterText.toLower()),
         matchScore(FuzzyTextMatchScore(0, 0, true, 0)) {}
   
   /// Type of this item.
@@ -43,6 +44,7 @@ struct SearchListItem {
   
   /// If not empty, text that the user input is matched to
   QString filterText;
+  QString filterTextLowercase;
   
   /// For type == LocalContext, the location to jump to on activating the item.
   DocumentLocation jumpLocation;

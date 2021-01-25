@@ -56,6 +56,7 @@ struct CompletionItem {
   
   /// Text used for filtering (and sorting), which is matched with the user input.
   QString filterText;
+  QString lowercaseFilterText;
   
   /// Index of the libclang CXCompletionResult, or -1 if this item was not
   /// created from a libclang completion item.

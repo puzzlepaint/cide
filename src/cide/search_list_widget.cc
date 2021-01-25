@@ -69,6 +69,7 @@ void SearchListWidget::SetItems(const std::vector<SearchListItem>&& items) {
 
 void SearchListWidget::SetFilterText(const QString& text) {
   QString defaultFilterText = text.trimmed();
+  QString defaultFilterTextLowercase = defaultFilterText.toLower();
   
   // Try to parse the text as "filepath:line:column" or "filepath:line".
   // Items of type ProjectFile will be filtered with the filepath only.
@@ -84,32 +85,42 @@ void SearchListWidget::SetFilterText(const QString& text) {
       break;
     }
   }
+  QString filepathFilterTextLowercase = filepathFilterText.toLower();
   
   // Score each item according to how well it matches the new filter text.
   constexpr int kMaxNonMatchedCharacters = 2;
   int minMatchedCharactersDefault = std::max(0, defaultFilterText.size() - kMaxNonMatchedCharacters);
   int minMatchedCharactersFilepath = std::max(0, filepathFilterText.size() - kMaxNonMatchedCharacters);
-  numShownItems = 0;
-  for (int i = 0, numItems = mItems.size(); i < numItems; ++ i) {
+  
+  std::atomic<int> numShownItemsAtomic;
+  numShownItemsAtomic = 0;
+  int numItems = mItems.size();
+  
+  #pragma omp parallel for
+  for (int i = 0; i < numItems; ++ i) {
     SearchListItem& item = mItems[i];
     
     QString* filterText;
+    QString* filterTextLowercase;
     int minMatchedCharacters;
     if (item.type == SearchListItem::Type::ProjectFile) {
       filterText = &filepathFilterText;
+      filterTextLowercase = &filepathFilterTextLowercase;
       minMatchedCharacters = minMatchedCharactersFilepath;
     } else {
       filterText = &defaultFilterText;
+      filterTextLowercase = &defaultFilterTextLowercase;
       minMatchedCharacters = minMatchedCharactersDefault;
     }
     
-    ComputeFuzzyTextMatch(*filterText, item.filterText, &item.matchScore);
+    ComputeFuzzyTextMatch(*filterText, *filterTextLowercase, item.filterText, item.filterTextLowercase, &item.matchScore);
     if (item.matchScore.matchedCharacters >= minMatchedCharacters) {
-      ++ numShownItems;
+      ++ numShownItemsAtomic;
     }
   }
   
   // Sort the items.
+  numShownItems = numShownItemsAtomic;
   numSortedItems = std::min<std::size_t>(maxNumVisibleItems, numShownItems);
   std::partial_sort(mSortOrder.begin(), mSortOrder.begin() + numSortedItems, mSortOrder.end(), SearchBarItemSorter(mItems.data()));
   

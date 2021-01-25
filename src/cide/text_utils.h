@@ -134,4 +134,4 @@ struct FuzzyTextMatchScore {
 
 /// Computes how well the 'text' matches the 'item' while accounting for some
 /// possible spelling mistakes and being relatively quick to compute.
-void ComputeFuzzyTextMatch(const QString& text, const QString& item, FuzzyTextMatchScore* score);
+void ComputeFuzzyTextMatch(const QString& text, const QString& lowercaseText, const QString& item, const QString& lowercaseItem, FuzzyTextMatchScore* score);

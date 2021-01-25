@@ -221,6 +221,7 @@ void SearchBar::GetCurrentContext() {
 
 void SearchBar::ComputeItems() {
   std::vector<SearchListItem> items;
+  items.reserve(1024);
   
   DocumentWidget* widget = mainWindow->GetCurrentDocumentWidget();
   if (widget) {

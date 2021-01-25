@@ -70,6 +70,7 @@ void CompletionItem::AppendCompletionString(const CXCompletionString& completion
       
       if (kind == CXCompletionChunk_TypedText) {
         filterText = text;
+        lowercaseFilterText = text.toLower();
         setStyle(DisplayStyle::FilterText);
       } else if (kind == CXCompletionChunk_Placeholder) {
         setStyle(DisplayStyle::Placeholder);
@@ -146,14 +147,18 @@ CodeCompletionWidget::~CodeCompletionWidget() {
 }
 
 void CodeCompletionWidget::SetFilterText(const QString& text) {
+  QString lowercaseText = text.toLower();
+  
   // Score each item according to how well it matches the new filter text. Note
   // that this must be very fast since the number of items may be huge (and we
   // currently perform the sorting in the foreground thread, i.e., the UI will
   // lock up for the duration this takes). Even with only some Qt headers
   // included, the item count was in the range of 10'000 items already!
-  for (int i = 0, numItems = mItems.size(); i < numItems; ++ i) {
+  int numItems = mItems.size();
+  #pragma omp parallel for
+  for (int i = 0; i < numItems; ++ i) {
     CompletionItem& item = mItems[i];
-    ComputeFuzzyTextMatch(text, item.filterText, &item.matchScore);
+    ComputeFuzzyTextMatch(text, lowercaseText, item.filterText, item.lowercaseFilterText, &item.matchScore);
   }
   
   // Sort the items.

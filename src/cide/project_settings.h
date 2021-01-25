@@ -50,6 +50,8 @@ class ProjectSettingsDialog : public QDialog {
   
   // "Editing" category
   QWidget* CreateEditingCategory();
+
+  QComboBox* defaultNewlineFormatCombo;
   
   // "Code parsing" category
   QWidget* CreateCodeParsingCategory();

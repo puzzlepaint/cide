@@ -79,6 +79,10 @@ class MainWindow : public QMainWindow {
   /// Notifies the main window about a parse iteration being finished for the document.
   void DocumentParsed(Document* document);
   
+  /// Returns the default newline format: If a project is open and a specific format has been configured for it,
+  /// returns this format, otherwise returns the program-wide setting.
+  NewlineFormat GetDefaultNewlineFormat();
+  
  signals:
   void ProjectOpened();
   void OpenProjectsChanged();
@@ -98,6 +102,8 @@ class MainWindow : public QMainWindow {
   void CloseDocument(int tabIndex);
   void CloseAllOtherDocuments(int tabIndex);
   void CloseAllDocuments();
+  
+  void SetNewlineFormat();
   
   void DisplayCursorPosition(int line, int col);
   
@@ -216,11 +222,17 @@ class MainWindow : public QMainWindow {
   void AppendBuildIssue(const QString& text);
   
   
+  QMenu* newlineFormatMenu;
+  QAction* lfNewlineAction;
+  QAction* crlfNewlineAction;
+  
   QAction* saveAction;
   QAction* saveAsAction;
   QAction* reloadFileAction;
   QAction* closeAction;
   
+  QAction* reconfigureAction;
+  QAction* projectSettingsAction;
   QAction* currentFileParseSettingsAction;
   QAction* currentFileParseIssuesAction;
   QAction* newProjectAction;

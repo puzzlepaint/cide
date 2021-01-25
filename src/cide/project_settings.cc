@@ -152,9 +152,20 @@ QWidget* ProjectSettingsDialog::CreateEditingCategory() {
   spacesPerTabLayout->addWidget(spacesPerTabLabel);
   spacesPerTabLayout->addWidget(spacesPerTabEdit);
   
+  QLabel* defaultNewlineFormatLabel = new QLabel(tr("Default newline format: "));
+  defaultNewlineFormatCombo = new QComboBox();
+  defaultNewlineFormatCombo->addItem(tr("LF: \\n (Linux-style)"), QVariant(static_cast<int>(NewlineFormat::Lf)));
+  defaultNewlineFormatCombo->addItem(tr("CRLF: \\r\\n (Windows-style)"), QVariant(static_cast<int>(NewlineFormat::CrLf)));
+  defaultNewlineFormatCombo->addItem(tr("(use program-level setting)"), QVariant(static_cast<int>(NewlineFormat::NotConfigured)));
+  defaultNewlineFormatCombo->setCurrentIndex(static_cast<int>(project->GetDefaultNewlineFormat()));
+  QHBoxLayout* defaultNewlineFormatLayout = new QHBoxLayout();
+  defaultNewlineFormatLayout->addWidget(defaultNewlineFormatLabel);
+  defaultNewlineFormatLayout->addWidget(defaultNewlineFormatCombo);
+  
   QVBoxLayout* layout = new QVBoxLayout();
   layout->addWidget(insertSpacesOnTabCheck);
   layout->addLayout(spacesPerTabLayout);
+  layout->addLayout(defaultNewlineFormatLayout);
   layout->addStretch(1);
   
   // --- Connections ---
@@ -167,6 +178,9 @@ QWidget* ProjectSettingsDialog::CreateEditingCategory() {
     } else {
       project->SetSpacesPerTab(-1);
     }
+  });
+  connect(defaultNewlineFormatCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), [&](int index) {
+    project->SetDefaultNewlineFormat(static_cast<NewlineFormat>(defaultNewlineFormatCombo->itemData(index, Qt::UserRole).toInt()));
   });
   
   QWidget* categoryWidget = new QWidget();

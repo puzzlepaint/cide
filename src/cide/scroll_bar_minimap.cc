@@ -46,7 +46,7 @@ void ScrollbarMinimap::UpdateMap(const std::vector<DocumentRange>& layoutLines, 
   if (documentCopy) {
     requestDocument = documentCopy;
   } else {
-    requestDocument.reset(new Document());
+    requestDocument.reset(new Document(document->newlineFormat()));
     requestDocument->AssignTextAndStyles(*document);
   }
   requestLayout = layoutLines;

@@ -159,6 +159,25 @@ MainWindow::MainWindow(QWidget* parent)
   
   QMenu* fileMenu = new QMenu(tr("File"));
   
+  newlineFormatMenu = fileMenu->addMenu(tr("Newline encoding"));
+  
+  lfNewlineAction = new QAction(tr("LF \\n (Linux-style)"), this);
+  lfNewlineAction->setCheckable(true);
+  newlineFormatMenu->addAction(lfNewlineAction);
+  
+  crlfNewlineAction = new QAction(tr("CRLF \\r\\n (Windows-style)"), this);
+  crlfNewlineAction->setCheckable(true);
+  newlineFormatMenu->addAction(crlfNewlineAction);
+
+  newlineFormatMenu->setEnabled(false);
+  
+  QActionGroup* newlineFormatGroup = new QActionGroup(this);
+  newlineFormatGroup->addAction(lfNewlineAction);
+  newlineFormatGroup->addAction(crlfNewlineAction);
+  connect(newlineFormatGroup, &QActionGroup::triggered, this, &MainWindow::SetNewlineFormat);
+  
+  fileMenu->addSeparator();
+  
   QAction* newFileAction = new ActionWithConfigurableShortcut(tr("New"), newFileShortcut, this);
   connect(newFileAction, &QAction::triggered, this, &MainWindow::New);
   fileMenu->addAction(newFileAction);
@@ -203,8 +222,8 @@ MainWindow::MainWindow(QWidget* parent)
   
   QMenu* projectMenu = new QMenu(tr("Project"));
   projectMenu->addAction(buildAction);
-  projectMenu->addAction(tr("Reconfigure"), this, &MainWindow::Reconfigure);
-  projectMenu->addAction(tr("Project settings..."), this, &MainWindow::ShowProjectSettings);
+  reconfigureAction = projectMenu->addAction(tr("Reconfigure"), this, &MainWindow::Reconfigure);
+  projectSettingsAction = projectMenu->addAction(tr("Project settings..."), this, &MainWindow::ShowProjectSettings);
   projectMenu->addSeparator();
   currentFileParseSettingsAction = projectMenu->addAction(tr("Parse settings for current file..."), this, &MainWindow::ParseSettingsForCurrentFile);
   currentFileParseIssuesAction = projectMenu->addAction(tr("All parse issues for current file..."), this, &MainWindow::ParseIssuesForCurrentFile);
@@ -532,7 +551,8 @@ void MainWindow::DocumentParsed(Document* document) {
 }
 
 void MainWindow::New() {
-  AddTab(new Document(), tr("New document"));
+  qDebug() << "newline format: " << (int)GetDefaultNewlineFormat();
+  AddTab(new Document(GetDefaultNewlineFormat()), tr("New document"));
 }
 
 void MainWindow::Open() {
@@ -571,7 +591,7 @@ void MainWindow::Open(const QString& path) {
   }
   
   // Open the document as a new tab
-  Document* newDocument = new Document();
+  Document* newDocument = new Document(GetDefaultNewlineFormat());
   if (!newDocument->Open(canonicalFilePath)) {
     QMessageBox::warning(this, tr("Error"), tr("Cannot open file: %1").arg(path));
     delete newDocument;
@@ -662,6 +682,26 @@ void MainWindow::CloseAllOtherDocuments(int tabIndex) {
 
 void MainWindow::CloseAllDocuments() {
   CloseAllOtherDocuments(-1);
+}
+
+void MainWindow::SetNewlineFormat() {
+  TabData* tab = GetCurrentTabData();
+  if (!tab) {
+    return;
+  }
+  
+  NewlineFormat chosenFormat;
+  if (lfNewlineAction->isChecked()) {
+    chosenFormat = NewlineFormat::Lf;
+  } else {  // if (crlfNewlineAction->isChecked()) {
+    chosenFormat = NewlineFormat::CrLf;
+  }
+  
+  if (tab->document->newlineFormat() != chosenFormat) {
+    // TODO: Newline format changes are not covered by the document modification system / undo steps currently.
+    //       We might want to incorporate them somehow in order to be able to set the document to have unsaved changes here.
+    tab->document->setNewlineFormat(chosenFormat);
+  }
 }
 
 void MainWindow::DisplayCursorPosition(int line, int col) {
@@ -817,6 +857,12 @@ void MainWindow::ParseIssuesForCurrentFile() {
   progress.setMaximum(1);
   progress.setValue(1);
   
+  if (!TU->isInitialized()) {
+    tab->document->GetTUPool()->PutTU(TU, false);
+    QMessageBox::warning(this, tr("Error"), tr("This file has not been parsed, thus no parse results can be shown."));
+    return;
+  }
+
   // Get all parse diagnostics.
   QString issuesString = QStringLiteral("");
   
@@ -915,7 +961,7 @@ void MainWindow::ParseIssuesForCurrentFile() {
 }
 
 bool MainWindow::NewProject(QWidget* parent) {
-  NewProjectDialog dialog(QString(), parent);
+  NewProjectDialog dialog(this, QString(), parent);
   if (dialog.exec() == QDialog::Rejected) {
     return false;
   }
@@ -942,7 +988,7 @@ bool MainWindow::OpenProject(QWidget* parent) {
       return true;
     }
   } else if (path.endsWith(".txt", Qt::CaseInsensitive)) {
-    NewProjectDialog dialog(path, parent);
+    NewProjectDialog dialog(this, path, parent);
     if (dialog.exec() == QDialog::Rejected) {
       return false;
     }
@@ -1913,13 +1959,20 @@ void MainWindow::CurrentTabChanged(int /*index*/) {
     tabData->widget->GetCursor(&line, &column);
     DisplayCursorPosition(line, column);
   }
+
+  bool isAnyProjectOpen = !projects.empty();
   
+  newlineFormatMenu->setEnabled(tabData != nullptr);
+  if (tabData != nullptr) {
+    lfNewlineAction->setChecked(tabData->document->newlineFormat() == NewlineFormat::Lf);
+    crlfNewlineAction->setChecked(tabData->document->newlineFormat() == NewlineFormat::CrLf);
+  }
   saveAction->setEnabled(tabData != nullptr);
   saveAsAction->setEnabled(tabData != nullptr);
   reloadFileAction->setEnabled(tabData != nullptr);
   closeAction->setEnabled(tabData != nullptr);
-  currentFileParseSettingsAction->setEnabled(tabData != nullptr);
-  currentFileParseIssuesAction->setEnabled(tabData != nullptr);
+  currentFileParseSettingsAction->setEnabled(tabData != nullptr && isAnyProjectOpen);
+  currentFileParseIssuesAction->setEnabled(tabData != nullptr && isAnyProjectOpen);
   
   CurrentOrOpenDocumentsChanged();
   
@@ -2028,7 +2081,7 @@ void MainWindow::GotoDocumentLocation(const QString& url) {
   
   // If the file is not open in a tab, try to open the file.
   if (!widget) {
-    Document* newDocument = new Document();
+    Document* newDocument = new Document(GetDefaultNewlineFormat());
     if (!newDocument->Open(path)) {
       QMessageBox::warning(this, tr("Error"), tr("Cannot open file: %1").arg(path));
       delete newDocument;
@@ -2119,7 +2172,13 @@ void MainWindow::CurrentOrOpenDocumentsChanged() {
 }
 
 void MainWindow::OpenProjectsChangedSlot() {
+  TabData* tabData = GetCurrentTabData();
   bool isAnyProjectOpen = !projects.empty();
+
+  reconfigureAction->setEnabled(isAnyProjectOpen);
+  projectSettingsAction->setEnabled(isAnyProjectOpen);
+  currentFileParseSettingsAction->setEnabled(tabData != nullptr && isAnyProjectOpen);
+  currentFileParseIssuesAction->setEnabled(tabData != nullptr && isAnyProjectOpen);
   newProjectAction->setEnabled(!isAnyProjectOpen);
   openProjectAction->setEnabled(!isAnyProjectOpen);
   closeProjectAction->setEnabled(isAnyProjectOpen);
@@ -2504,4 +2563,12 @@ void MainWindow::AppendBuildIssue(const QString& text) {
   lastAddedBuildIssueLabel->setText(lastAddedBuildIssueLabel->text() + QStringLiteral("<br/>") + text);
   
   buildIssuesWidget->resize(buildIssuesWidget->sizeHint());
+}
+
+NewlineFormat MainWindow::GetDefaultNewlineFormat() {
+  if (!projects.empty() && projects.front()->GetDefaultNewlineFormat() != NewlineFormat::NotConfigured) {
+    return projects.front()->GetDefaultNewlineFormat();
+  } else {
+    return Settings::Instance().GetDefaultNewlineFormat();
+  }
 }

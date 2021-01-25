@@ -227,6 +227,11 @@ if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     ";$<$<COMPILE_LANGUAGE:CXX>:-Wno-sign-compare>"
     ";$<$<COMPILE_LANGUAGE:CXX>:-Wno-strict-overflow>"
   )
+else()
+  target_compile_options(CIDEBaseLib PUBLIC
+    ";$<$<COMPILE_LANGUAGE:CXX>:/wd4267>"
+    ";$<$<COMPILE_LANGUAGE:CXX>:/wd4018>"
+  )
 endif()
 target_compile_options(CIDEBaseLib PUBLIC
   ${LIBGIT2_DEFINITIONS}

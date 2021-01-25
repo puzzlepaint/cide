@@ -13,11 +13,13 @@
 #include <QMessageBox>
 #include <QPushButton>
 
+#include "cide/main_window.h"
 #include "cide/util.h"
 
-NewProjectDialog::NewProjectDialog(const QString& existingCMakeFilePath, QWidget* parent)
+NewProjectDialog::NewProjectDialog(MainWindow* mainWindow, const QString& existingCMakeFilePath, QWidget* parent)
     : QDialog(parent),
-      existingCMakeFilePath(existingCMakeFilePath) {
+      existingCMakeFilePath(existingCMakeFilePath),
+      mainWindow(mainWindow) {
   setWindowTitle(tr("New project"));
   setWindowIcon(QIcon(":/cide/cide.png"));
   
@@ -118,27 +120,31 @@ bool NewProjectDialog::CreateNewProject() {
   // Create project files
   // <project_name>.cide
   QFile projectFile(dir.filePath(projectName + ".cide"));
-  if (!projectFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+  if (!projectFile.open(QIODevice::WriteOnly)) {
     QMessageBox::warning(this, tr("New project"), tr("Failed to create project file (%1).").arg(projectFile.fileName()));
     return false;
   }
-  projectFile.write(QString(
+  QString projectFileText = QString(
       "name: %1\n"
       "projectCMakeDir: build\n"
       "buildDir: build\n"
       "buildTarget: %2\n"
       "runDir: build\n"
-      "runCmd: ./%2\n").arg(projectName).arg(binaryName).toUtf8());
+      "runCmd: ./%2\n").arg(projectName).arg(binaryName);
+  if (mainWindow->GetDefaultNewlineFormat() == NewlineFormat::CrLf) {
+    projectFileText.replace(QStringLiteral("\n"), QStringLiteral("\r\n"));
+  }
+  projectFile.write(projectFileText.toUtf8());
   projectFile.close();
   
   // CMakeLists.txt
   QString cmakeListsPath = dir.filePath("CMakeLists.txt");
   QFile cmakeListsFile(cmakeListsPath);
-  if (!cmakeListsFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+  if (!cmakeListsFile.open(QIODevice::WriteOnly)) {
     QMessageBox::warning(this, tr("New project"), tr("Failed to create CMakeLists.txt file (%1).").arg(cmakeListsFile.fileName()));
     return false;
   }
-  cmakeListsFile.write(QString(
+  QString cmakeListsFileText = QString(
       "cmake_minimum_required(VERSION 3.0)\n"
       "\n"
       "project(%1)\n"
@@ -155,7 +161,11 @@ bool NewProjectDialog::CreateNewProject() {
       "  \";$<$<COMPILE_LANGUAGE:CXX>:-O2>\"\n"
       "  \";$<$<COMPILE_LANGUAGE:CXX>:-msse2>\"\n"
       "  \";$<$<COMPILE_LANGUAGE:CXX>:-msse3>\"\n"
-      ")\n").arg(projectName).arg(binaryName).arg(srcSubfolderName).toUtf8());
+      ")\n").arg(projectName).arg(binaryName).arg(srcSubfolderName);
+  if (mainWindow->GetDefaultNewlineFormat() == NewlineFormat::CrLf) {
+    cmakeListsFileText.replace(QStringLiteral("\n"), QStringLiteral("\r\n"));
+  }
+  cmakeListsFile.write(cmakeListsFileText.toUtf8());
   cmakeListsFile.close();
   
   // src/<project_name> directory
@@ -172,10 +182,14 @@ bool NewProjectDialog::CreateNewProject() {
     QMessageBox::warning(this, tr("New project"), tr("Failed to create main file (%1).").arg(mainFile.fileName()));
     return false;
   }
-  mainFile.write(QString(
+  QString mainFileText = QString(
       "int main(int argc, char** argv) {\n"
       "  \n"
-      "}\n").toUtf8());
+      "}\n");
+  if (mainWindow->GetDefaultNewlineFormat() == NewlineFormat::CrLf) {
+    mainFileText.replace(QStringLiteral("\n"), QStringLiteral("\r\n"));
+  }
+  mainFile.write(mainFileText.toUtf8());
   mainFile.close();
   
   // build directory
@@ -196,16 +210,20 @@ bool NewProjectDialog::CreateProjectForExistingCMakeListsTxtFile() {
   
   // Create <project_name>.cide
   QFile projectFile(cmakeFileDir.filePath(projectName + ".cide"));
-  if (!projectFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+  if (!projectFile.open(QIODevice::WriteOnly)) {
     QMessageBox::warning(this, tr("New project"), tr("Failed to create project file (%1).").arg(projectFile.fileName()));
     return false;
   }
-  projectFile.write(QString(
+  QString projectFileText = QString(
       "name: %1\n"
       "projectCMakeDir: %3\n"
       "buildDir: %3\n"
       "runDir: %3\n"
-      "runCmd: ./%2\n").arg(projectName).arg(binaryName).arg(cmakeFileDir.relativeFilePath(buildDirPath)).toUtf8());
+      "runCmd: ./%2\n").arg(projectName).arg(binaryName).arg(cmakeFileDir.relativeFilePath(buildDirPath));
+  if (mainWindow->GetDefaultNewlineFormat() == NewlineFormat::CrLf) {
+    projectFileText.replace(QStringLiteral("\n"), QStringLiteral("\r\n"));
+  }
+  projectFile.write(projectFileText.toUtf8());
   projectFile.close();
   
   return true;

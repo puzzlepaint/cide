@@ -60,7 +60,7 @@ In particular, be aware of the following:
 * At the moment, CIDE has only *very* basic debugging support, which only works on Linux.
 * CMake, version 3.14 or later, currently is the only supported build system for projects developed with CIDE.
 * There is no support for high-DPI monitors.
-* All files are assumed to be in UTF-8 encoding, and line endings are always saved as `\n` (not `\r\n`).
+* All files are assumed to be in UTF-8 encoding.
 
 
 ### Precompiled binaries ###
@@ -88,8 +88,8 @@ The following build dependencies must be present:
 
 | Dependency                          | Version(s) known to work |
 | ----------------------------------- | ------------------------ |
-| [libclang](https://clang.llvm.org/) | 9.0.1, 10.0.0            |
-| [Qt5](https://www.qt.io/)           | 5.12.0, 5.12.3, 5.15.0   |
+| [libclang](https://clang.llvm.org/) | 9.0.1, 10.0.0, 11.0.1    |
+| [Qt5](https://www.qt.io/)           | 5.12.3, 5.14.2, 5.15.0   |
 | [libgit2](https://libgit2.org/)     | 0.28.4, 1.0.1            |
 
 The following runtime dependencies should be present:

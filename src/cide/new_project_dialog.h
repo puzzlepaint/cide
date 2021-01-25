@@ -6,11 +6,12 @@
 
 #include <QDialog>
 
+class MainWindow;
 class QLineEdit;
 
 class NewProjectDialog : public QDialog {
  public:
-  NewProjectDialog(const QString& existingCMakeFilePath, QWidget* parent = nullptr);
+  NewProjectDialog(MainWindow* mainWindow, const QString& existingCMakeFilePath, QWidget* parent = nullptr);
   
   bool CreateProject();
   
@@ -28,4 +29,6 @@ class NewProjectDialog : public QDialog {
   QLineEdit* folderEdit = nullptr;
   
   QString existingCMakeFilePath;
+  
+  MainWindow* mainWindow;
 };

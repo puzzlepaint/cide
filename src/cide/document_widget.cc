@@ -876,6 +876,10 @@ void DocumentWidget::Copy() {
     return;
   }
   
+  if (document->newlineFormat() == NewlineFormat::CrLf) {
+    selectedText.replace(QStringLiteral("\n"), QStringLiteral("\r\n"));
+  }
+  
   QGuiApplication::clipboard()->setText(selectedText, QClipboard::Clipboard);
 }
 
@@ -1556,9 +1560,8 @@ bool DocumentWidget::CheckRelayout() {
   // Update the x-scroll range
   UpdateScrollbar();
   
-  // Copy the document for both the scrollbar minimap update and a possible
-  // backup
-  std::shared_ptr<Document> documentCopy(new Document());
+  // Copy the document for both the scrollbar minimap update and a possible backup
+  std::shared_ptr<Document> documentCopy(new Document(document->newlineFormat()));
   documentCopy->AssignTextAndStyles(*document);
   
   container->GetMinimap()->UpdateMap(layoutLines, documentCopy);

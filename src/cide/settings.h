@@ -26,6 +26,13 @@ class QPushButton;
 class QStackedLayout;
 
 
+enum class NewlineFormat {
+  Lf = 0,
+  CrLf = 1,
+  NotConfigured = 2
+};
+
+
 struct WordCompletion {
   WordCompletion() = default;
   
@@ -308,6 +315,10 @@ class Settings : public QObject {
     return settings.value("column_marker_position", 80).toInt();
   }
   
+  inline NewlineFormat GetDefaultNewlineFormat() const {
+    return static_cast<NewlineFormat>(settings.value("default_newline_format", static_cast<int>(NewlineFormat::Lf)).toInt());
+  }
+  
   inline QStringList GetCommentMarkers() const {
     static QStringList defaultCommentMarkers = {"TODO", "FIXME", "TEST", "HACK", "END"};
     return settings.value("comment_markers", defaultCommentMarkers).toStringList();
@@ -411,6 +422,10 @@ class Settings : public QObject {
     settings.setValue("column_marker_position", position);
   }
   
+  inline void SetDefaultNewlineFormat(NewlineFormat format) {
+    settings.setValue("default_newline_format", static_cast<int>(format));
+  }
+  
   inline void SetCommentMarkers(const QStringList& markers) {
     settings.setValue("comment_markers", markers);
   }
@@ -484,12 +499,13 @@ class SettingsDialog : public QDialog {
   
   // "General" category
   QWidget* CreateGeneralCategory();
-  
+
   QLineEdit* fontSizeEdit;
   QComboBox* headerSourceOrderingCombo;
   QComboBox* codeCompletionConfirmationCombo;
   QCheckBox* showColumnMarkerCheck;
   QLineEdit* columnMarkerEdit;
+  QComboBox* defaultNewlineFormatCombo;
   
   // "Auto-completions/corrections" category
   QWidget* CreateAutoCompletionsCorrectionsCategory();

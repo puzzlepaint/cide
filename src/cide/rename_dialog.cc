@@ -854,7 +854,7 @@ void RenameDialog::RenameInDocument(DocumentWidget* widget, const std::vector<Oc
 
 void RenameDialog::RenameInFileOnDisk(const QString& path, const std::vector<Occurrence>& occurrences) {
   QFile file(path);
-  if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+  if (!file.open(QIODevice::ReadOnly)) {
     QMessageBox::warning(this, tr("Rename"), tr("Failed to open file: %1").arg(path));
     return;
   }
@@ -881,7 +881,7 @@ void RenameDialog::RenameInFileOnDisk(const QString& path, const std::vector<Occ
   }
   
   file.close();
-  if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+  if (file.open(QIODevice::WriteOnly)) {
     file.write(modifiedFileText.toUtf8());
   } else {
     QMessageBox::warning(this, tr("Rename"), tr("File not writable: %1").arg(path));

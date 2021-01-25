@@ -14,6 +14,7 @@
 #include <QFileSystemWatcher>
 #include <QString>
 
+#include "cide/settings.h"
 #include "cide/util.h"
 
 
@@ -210,6 +211,10 @@ class Project : public QObject {
   /// If false, a tab character should be inserted instead.
   inline bool GetInsertSpacesOnTab() const { return insertSpacesOnTab; }
   
+  /// Returns the default newline format configured for this project.
+  /// May be NewlineFormat::NotConfigured. In this case, the program-level setting should be used.
+  inline NewlineFormat GetDefaultNewlineFormat() const { return defaultNewlineFormat; }
+  
   /// Returns whether all project files should be indexed. If not,
   /// only open files will be indexed.
   inline bool GetIndexAllProjectFiles() const { return indexAllProjectFiles; }
@@ -248,6 +253,7 @@ class Project : public QObject {
   inline void SetBuildThreads(int numThreads) { buildThreads = numThreads; }
   inline void SetSpacesPerTab(int value) { spacesPerTab = value; }
   inline void SetInsertSpacesOnTab(bool enable) { insertSpacesOnTab = enable; }
+  inline void SetDefaultNewlineFormat(NewlineFormat format) { defaultNewlineFormat = format; }
   inline void SetIndexAllProjectFiles(bool enable) { indexAllProjectFiles = enable; }
   
  signals:
@@ -295,6 +301,8 @@ class Project : public QObject {
   
   bool insertSpacesOnTab;
   int spacesPerTab;
+  
+  NewlineFormat defaultNewlineFormat;
   
   bool indexAllProjectFiles;
   

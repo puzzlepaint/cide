@@ -391,10 +391,11 @@ void Document::CharacterAndStyleIterator::operator++() {
 }
 
 
-Document::Document(int desiredBlockSize)
+Document::Document(NewlineFormat newlineFormat, int desiredBlockSize)
     : mVersion(0),
       mSavedVersion(0),
       mOffsetCacheVersion(-1),
+      mNewlineFormat(newlineFormat),
       desiredBlockSize(desiredBlockSize) {
   mBlocks = {std::shared_ptr<TextBlock>(new TextBlock())};
   
@@ -441,7 +442,7 @@ void Document::AssignTextAndStyles(const Document& other) {
 
 bool Document::Open(const QString& path) {
   QFile file(path);
-  if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+  if (!file.open(QIODevice::ReadOnly)) {
     return false;
   }
   setPath(QFileInfo(path).canonicalFilePath());
@@ -462,18 +463,21 @@ bool Document::Save(const QString& path) {
   setPath(QStringLiteral(""));  // stop watching any old file
   
   QFile file(pathCopy);
-  if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+  if (!file.open(QIODevice::WriteOnly)) {
     setPath(oldPath);  // return to old file on failure
     return false;
   }
-
-  for (int b = 0; b < mBlocks.size(); ++ b) {
-    QByteArray utf8Data = mBlocks[b]->text().toUtf8();
-    if (file.write(utf8Data) != utf8Data.size()) {
-      file.close();
-      setPath(oldPath);  // return to old file on failure
-      return false;
-    }
+  
+  QString text = TextForRange(FullDocumentRange());
+  if (newlineFormat() == NewlineFormat::CrLf) {
+    text.replace(QStringLiteral("\n"), QStringLiteral("\r\n"));
+  }
+  QByteArray utf8Data = text.toUtf8();  // TODO: Support other encodings than UTF-8 only
+  
+  if (file.write(utf8Data) != utf8Data.size()) {
+    file.close();
+    setPath(oldPath);  // return to old file on failure
+    return false;
   }
   
   file.close();
@@ -487,7 +491,7 @@ bool Document::Save(const QString& path) {
 
 bool Document::OpenBackup(const QString& backupPath, QString* originalPath) {
   QFile file(backupPath);
-  if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+  if (!file.open(QIODevice::ReadOnly)) {
     return false;
   }
   
@@ -500,17 +504,20 @@ bool Document::OpenBackup(const QString& backupPath, QString* originalPath) {
 
 bool Document::SaveBackup(const QString& backupPath, const QString& originalPath) {
   QFile file(backupPath);
-  if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+  if (!file.open(QIODevice::WriteOnly)) {
     return false;
   }
   
   file.write(originalPath.toUtf8() + "\n");
   
-  for (int b = 0; b < mBlocks.size(); ++ b) {
-    QByteArray utf8Data = mBlocks[b]->text().toUtf8();
-    if (file.write(utf8Data) != utf8Data.size()) {
-      return false;
-    }
+  QString text = TextForRange(FullDocumentRange());
+  if (newlineFormat() == NewlineFormat::CrLf) {
+    text.replace(QStringLiteral("\n"), QStringLiteral("\r\n"));
+  }
+  QByteArray utf8Data = text.toUtf8();  // TODO: Support other encodings than UTF-8 only
+  
+  if (file.write(utf8Data) != utf8Data.size()) {
+    return false;
   }
   
   file.close();
@@ -1646,11 +1653,36 @@ void Document::ClearVersionGraph() {
 }
 
 void Document::ReadTextFromFile(QFile* file) {
-  // Read lines from file while removing possible unwanted \r characters
-  QString fileText = "";
-  while (!file->atEnd()) {
-    QByteArray line = file->readLine();
-    fileText += QString::fromUtf8(line);  // TODO: Allow reading other formats than UTF-8 only?
+  // Read lines from file
+  QString fileText = QString::fromUtf8(file->readAll());  // TODO: Allow reading other formats than UTF-8 only
+  
+  // Convert any "\r\n" newlines to '\n' and count the types of newlines in the file
+  // to determine the newline format to use.
+  int crlfCount = 0;
+  int lfCount = 0;
+  
+  int outC = 0;
+  for (int c = 0; c < fileText.size(); ++ c) {
+    if (c < fileText.size() - 1 && fileText[c] == '\r' && fileText[c + 1] == '\n') {
+      ++ crlfCount;
+      fileText[outC] = '\n';
+      ++ outC;
+      ++ c;
+    } else if (fileText[c] == '\n') {
+      ++ lfCount;
+      fileText[outC] = '\n';
+      ++ outC;
+    } else {
+      fileText[outC] = fileText[c];
+      ++ outC;
+    }
+  }
+  
+  fileText.resize(outC);
+  if (crlfCount > lfCount) {
+    setNewlineFormat(NewlineFormat::CrLf);
+  } else if (lfCount > crlfCount) {
+    setNewlineFormat(NewlineFormat::Lf);
   }
   
   // Convert text to blocks

@@ -87,7 +87,7 @@ void CrashBackup::RestoreBackups(MainWindow* mainWindow) {
     QString backupPath = backupQDir.filePath(backupFilename);
     
     // Read the backup file
-    std::shared_ptr<Document> backupDocument(new Document());
+    std::shared_ptr<Document> backupDocument(new Document(mainWindow->GetDefaultNewlineFormat()));
     QString originalFilePath;
     if (!backupDocument->OpenBackup(backupPath, &originalFilePath)) {
       qDebug() << "Error: Cannot read backup file:" << backupPath;

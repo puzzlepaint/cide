@@ -241,6 +241,22 @@ bool Project::Load(const QString& path) {
     insertSpacesOnTab = true;
   }
   
+  if (fileNode["defaultNewlineFormat"].IsDefined()) {
+    std::string format = fileNode["defaultNewlineFormat"].as<std::string>();
+    if (format == "CrLf") {
+      defaultNewlineFormat = NewlineFormat::CrLf;
+    } else if (format == "Lf") {
+      defaultNewlineFormat = NewlineFormat::Lf;
+    } else if (format == "NotConfigured") {
+      defaultNewlineFormat = NewlineFormat::NotConfigured;
+    } else {
+      defaultNewlineFormat = NewlineFormat::NotConfigured;
+      qDebug() << "Error while loading" << path << ": 'defaultNewlineFormat' node has unexpected value" << QString::fromStdString(format);
+    }
+  } else {
+    defaultNewlineFormat = NewlineFormat::NotConfigured;
+  }
+  
   if (fileNode["indexAllProjectFiles"].IsDefined()) {
     indexAllProjectFiles = fileNode["indexAllProjectFiles"].as<bool>();
   } else {
@@ -330,6 +346,15 @@ bool Project::Save(const QString& path) {
   
   out << YAML::Key << "insertSpacesOnTab";
   out << YAML::Value << insertSpacesOnTab;
+  
+  out << YAML::Key << "defaultNewlineFormat";
+  if (defaultNewlineFormat == NewlineFormat::CrLf) {
+    out << YAML::Value << "CrLf";
+  } else if (defaultNewlineFormat == NewlineFormat::Lf) {
+    out << YAML::Value << "Lf";
+  } else {  // if (defaultNewlineFormat == NewlineFormat::NotConfigured) {
+    out << YAML::Value << "NotConfigured";
+  }
   
   out << YAML::Key << "indexAllProjectFiles";
   out << YAML::Value << indexAllProjectFiles;

@@ -348,7 +348,7 @@ class Document : public QObject {
   };
   
   /// Creates an empty document.
-  Document(int desiredBlockSize = 128);
+  Document(NewlineFormat newlineFormat, int desiredBlockSize = 128);
   
   /// Destructor. Frees the document version graph.
   ~Document();
@@ -418,6 +418,9 @@ class Document : public QObject {
   inline const QString& path() const { return mPath; }
   inline const QString& fileName() const { return mFileName; }
   void setPath(const QString& path);
+  
+  inline NewlineFormat newlineFormat() const { return mNewlineFormat; }
+  inline void setNewlineFormat(NewlineFormat format) { mNewlineFormat = format; }
   
   /// Returns a DocumentRange that encompasses the complete document.
   DocumentRange FullDocumentRange() const;
@@ -628,6 +631,11 @@ class Document : public QObject {
   
   /// Stores all contexts, ordered by the start of the context range.
   std::set<Context> mContexts;
+  
+  /// The chosen newline format for this document. Note that internally, newlines
+  /// are always represented as '\n' only (not "\r\n"). The format only determines
+  /// how the text is "exported" when saving the file to disk or when copying text from it.
+  NewlineFormat mNewlineFormat;
   
   /// Small text blocks that make up the document text.
   std::vector<std::shared_ptr<TextBlock>> mBlocks;

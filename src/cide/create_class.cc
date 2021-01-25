@@ -135,12 +135,15 @@ void CreateClassDialog::accept() {
     QString sourcePath = sourcePathEdit->text();
     QString sourceFilename = QFileInfo(sourcePath).fileName();
     QFile source(sourcePath);
-    if (!source.open(QIODevice::WriteOnly | QIODevice::Text)) {
+    if (!source.open(QIODevice::WriteOnly)) {
       QMessageBox::warning(this, tr("Error"), tr("Could not create source file: %1.").arg(sourcePath));
       return;
     }
     QString sourceText = project->GetFileTemplate(static_cast<int>(Project::FileTemplate::SourceFile));
     ApplyFileTemplateReplacements(&sourceText, className, headerFilename);
+    if (mainWindow->GetDefaultNewlineFormat() == NewlineFormat::CrLf) {
+      sourceText.replace(QStringLiteral("\n"), QStringLiteral("\r\n"));
+    }
     source.write(sourceText.toUtf8());
     source.close();
     mainWindow->Open(sourcePath);
@@ -148,12 +151,15 @@ void CreateClassDialog::accept() {
   
   // Create the header file
   QFile header(headerPath);
-  if (!header.open(QIODevice::WriteOnly | QIODevice::Text)) {
+  if (!header.open(QIODevice::WriteOnly)) {
     QMessageBox::warning(this, tr("Error"), tr("Could not create header file: %1.").arg(headerPath));
     return;
   }
   QString headerText = project->GetFileTemplate(static_cast<int>(Project::FileTemplate::HeaderFile));
   ApplyFileTemplateReplacements(&headerText, className, headerFilename);
+  if (mainWindow->GetDefaultNewlineFormat() == NewlineFormat::CrLf) {
+    headerText.replace(QStringLiteral("\n"), QStringLiteral("\r\n"));
+  }
   header.write(headerText.toUtf8());
   header.close();
   mainWindow->Open(headerPath);
@@ -172,7 +178,7 @@ void CreateClassDialog::accept() {
       // Here, we do not reconfigure the project, since the user would need to save this file first.
     } else {
       QFile cmakeFile(cmakeListsPath);
-      if (!cmakeFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+      if (!cmakeFile.open(QIODevice::WriteOnly)) {
         QMessageBox::warning(this, tr("Error"), tr("Could not open CMakeLists.txt file: %1.").arg(cmakeListsPath));
         return;
       }
@@ -333,7 +339,7 @@ bool CreateClassDialog::UpdateCMakePreview() {
   // Read the CMakeLists.txt file.
   cmakeListsPath = QFileInfo(cmakelistsDir.filePath("CMakeLists.txt")).canonicalFilePath();
   QFile cmakeListsFile(cmakeListsPath);
-  if (!cmakeListsFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+  if (!cmakeListsFile.open(QIODevice::ReadOnly)) {
     disablePreview(tr("(could not open %1)").arg(cmakeListsPath));
     return false;
   }
@@ -423,6 +429,9 @@ bool CreateClassDialog::UpdateCMakePreview() {
           int newlinePos = cmakeText.lastIndexOf('\n', existingFilePos);
           if (newlinePos < 0) {
             newlinePos = 0;
+          }
+          if (cmakeText[newlinePos] == '\r') {
+            newlinePos = std::max(0, newlinePos - 1);
           }
           cmakeText.insert(newlinePos, insertion);
           for (DocumentRange& range : insertedRanges) {

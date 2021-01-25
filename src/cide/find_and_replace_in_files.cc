@@ -360,9 +360,10 @@ void FindAndReplaceInFiles::SearchInFile(const QDir& startDir, const QString& fi
   std::vector<int> occurrenceColumns;  // zero-based
   int line = 0;  // one-based
   
+  // TODO: Do not process the file line by line to allow for find texts that span multiple lines
   while (!file.atEnd()) {
     ++ line;
-    QString lineText = QString::fromUtf8(file.readLine());  // TODO: Allow reading other formats than UTF-8 only?
+    QString lineText = QString::fromUtf8(file.readLine());  // TODO: Allow reading other formats than UTF-8 only
     
     SearchInLine(
         line,
@@ -458,34 +459,29 @@ void FindAndReplaceInFiles::ReplaceInDocument(DocumentWidget* widget, const QStr
 }
 
 void FindAndReplaceInFiles::ReplaceInFile(const QString& filePath, const QString& replacementText, QString* errorMessages) {
+  // TODO: Properly support finding strings that go beyond a single line.
+  //       To do so, we must account for the possibility that the newline encoding differs between the file and the find / replacement text.
+  
   QFile file(filePath);
-  if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+  if (!file.open(QIODevice::ReadOnly)) {
     return;
   }
+  QString fileText = QString::fromUtf8(file.readAll());  // TODO: Allow reading other formats than UTF-8 only
+  file.close();
   
-  QString modifiedFileText;
-  
-  while (!file.atEnd()) {
-    // TODO: Support finding strings that go beyond a single line
-    QString lineText = QString::fromUtf8(file.readLine());  // TODO: Allow reading other formats than UTF-8 only?
+  int c = fileText.size() - 1;
+  while ((c = fileText.lastIndexOf(findText, c, caseSensitivity)) != -1) {
+    // Replace this occurrence
+    fileText.replace(c, findText.size(), replacementText);
     
-    int column = lineText.size() - 1;
-    while ((column = lineText.lastIndexOf(findText, column, caseSensitivity)) != -1) {
-      // Replace this occurrence
-      lineText.replace(column, findText.size(), replacementText);
-      
-      column -= 1;
-      if (column < 0) {
-        break;
-      }
+    c -= 1;
+    if (c < 0) {
+      break;
     }
-    
-    modifiedFileText += lineText;
   }
   
-  file.close();
-  if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-    file.write(modifiedFileText.toUtf8());
+  if (file.open(QIODevice::WriteOnly)) {
+    file.write(fileText.toUtf8());  // TODO: Allow saving other formats than UTF-8 only
   } else {
     *errorMessages += tr("File not writable: %1\n").arg(filePath);
   }

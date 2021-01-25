@@ -1239,7 +1239,7 @@ bool Project::CreateCMakeQueryFilesIfNotExisting(QString* errorReason) {
   if (!codemodelQueryFile.exists()) {
     codemodelQueryFile.dir().mkpath(".");
     QFile file(codemodelQueryFile.filePath());
-    if (!file.open(QIODevice::WriteOnly)) {
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
       *errorReason = QObject::tr("Failed to write codemodel query file (path: %1)").arg(codemodelQueryFile.filePath());
       return false;
     }
@@ -1249,7 +1249,7 @@ bool Project::CreateCMakeQueryFilesIfNotExisting(QString* errorReason) {
   if (!cacheQueryFile.exists()) {
     cacheQueryFile.dir().mkpath(".");
     QFile file(cacheQueryFile.filePath());
-    if (!file.open(QIODevice::WriteOnly)) {
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
       *errorReason = QObject::tr("Failed to write codemodel query file (path: %1)").arg(cacheQueryFile.filePath());
       return false;
     }
@@ -1259,7 +1259,7 @@ bool Project::CreateCMakeQueryFilesIfNotExisting(QString* errorReason) {
   if (!cmakeFilesQueryFile.exists()) {
     cmakeFilesQueryFile.dir().mkpath(".");
     QFile file(cmakeFilesQueryFile.filePath());
-    if (!file.open(QIODevice::WriteOnly)) {
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
       *errorReason = QObject::tr("Failed to write codemodel query file (path: %1)").arg(cmakeFilesQueryFile.filePath());
       return false;
     }

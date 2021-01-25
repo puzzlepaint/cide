@@ -6,6 +6,11 @@
 
 #include <unordered_set>
 
+#ifdef Q_OS_WIN
+  #include <Windows.h>
+  #undef CreateFile
+#endif
+
 #include <git2.h>
 #include <QCheckBox>
 #include <QDialogButtonBox>
@@ -274,8 +279,8 @@ bool ProjectTreeView::SelectCurrent() {
 
 void ProjectTreeView::UpdateProjects() {
   tree->clear();
-  if (!watcher.files().isEmpty()) {
-    watcher.removePaths(watcher.files());
+  if (!watcher.directories().isEmpty()) {
+    watcher.removePaths(watcher.directories());
   }
   if (!gitWatcher.files().isEmpty()) {
     gitWatcher.removePaths(gitWatcher.files());
@@ -365,6 +370,8 @@ void ProjectTreeView::UpdateHighlighting() {
 void ProjectTreeView::ReloadDirectory(QTreeWidgetItem* dirItem) {
   std::unordered_set<std::string> expandedDirs;
   
+  bool wasExpanded = dirItem->isExpanded();
+  
   // Delete all children and remove all watchers related to them (and
   // grand-children etc.). Remember expanded directories such that they can be
   // expanded again after the reload (at least if they still exist with the
@@ -398,21 +405,26 @@ void ProjectTreeView::ReloadDirectory(QTreeWidgetItem* dirItem) {
   // Collapse the item
   dirItem->setExpanded(false);
   
-  // Expand the item(s) again, which will add the updated children
-  workList = {dirItem};
-  while (!workList.empty()) {
-    QTreeWidgetItem* item = workList.back();
-    workList.pop_back();
-    
-    if (expandedDirs.count(GetItemPath(item).toStdString()) > 0) {
-      item->setExpanded(true);
+  // Expand the item(s) again that were expanded before, which will add the updated children
+  if (wasExpanded) {
+    workList = {dirItem};
+    while (!workList.empty()) {
+      QTreeWidgetItem* item = workList.back();
+      workList.pop_back();
       
-      // Add all children to the work list
-      for (int i = item->childCount() - 1; i >= 0; -- i) {
-        workList.push_back(item->child(i));
+      if (expandedDirs.count(GetItemPath(item).toStdString()) > 0) {
+        item->setExpanded(true);
+        
+        // Add all children to the work list
+        for (int i = item->childCount() - 1; i >= 0; -- i) {
+          workList.push_back(item->child(i));
+        }
       }
     }
   }
+  
+  // Show child indicator depending on whether the directory is empty or not
+  dirItem->setChildIndicatorPolicy((QDir(GetItemPath(dirItem)).isEmpty()) ? QTreeWidgetItem::DontShowIndicatorWhenChildless : QTreeWidgetItem::ShowIndicator);
 }
 
 void ProjectTreeView::ProjectMayRequireReconfiguration() {
@@ -493,9 +505,6 @@ void ProjectTreeView::ItemExpanded(QTreeWidgetItem* item) {
   // Get the path of this directory.
   QDir dir(GetItemPath(item));
   
-  // Add a watcher for this directory.
-  watcher.addPath(dir.path());
-  
   // Add the directory items as children.
   QStringList entryList = dir.entryList(
       QDir::NoDotAndDotDot | QDir::Files | QDir::Dirs | QDir::Hidden,
@@ -511,9 +520,6 @@ void ProjectTreeView::ItemExpanded(QTreeWidgetItem* item) {
 void ProjectTreeView::ItemCollapsed(QTreeWidgetItem* item) {
   // Get the path of this directory.
   QDir dir(GetItemPath(item));
-  
-  // Remove the watcher for this directory.
-  watcher.removePath(dir.path());
   
   // Delete all children and remove any watchers for them.
   std::vector<QTreeWidgetItem*> workList = {item};
@@ -623,10 +629,13 @@ void ProjectTreeView::CreateFile() {
     QMessageBox::warning(mainWindow, tr("Create file"), tr("There already exists a file or folder with this name."));
     return;
   }
-  QFile(path).open(QIODevice::WriteOnly | QIODevice::Text);
+  QFile(path).open(QIODevice::WriteOnly);
   
   // Open file
   mainWindow->Open(path);
+
+  rightClickedItem->setChildIndicatorPolicy(QTreeWidgetItem::ShowIndicator);
+  rightClickedItem->setExpanded(true);
   
   UpdateGitStatus();
 }
@@ -661,6 +670,9 @@ void ProjectTreeView::CreateFolder() {
   }
   folder.mkdir(folderName);
   
+  rightClickedItem->setChildIndicatorPolicy(QTreeWidgetItem::ShowIndicator);
+  rightClickedItem->setExpanded(true);
+
   UpdateGitStatus();
 }
 
@@ -705,6 +717,42 @@ void ProjectTreeView::Rename() {
   }
 }
 
+static bool RemoveReadOnlyAttributeRecursive(const QString& directory) {
+  int failures = 0;
+  QDirIterator it(directory, QDirIterator::NoIteratorFlags);
+  while (it.hasNext()) {
+    QString fileName = it.next();
+    if (fileName.endsWith("/.") || fileName.endsWith("/..")) {
+      continue;
+    }
+
+    QFileInfo fileInfo(fileName);
+    if (fileInfo.isDir()) {
+      if (!RemoveReadOnlyAttributeRecursive(fileName)) {
+        ++ failures;
+      }
+    } else {
+#ifdef Q_OS_WIN
+      wchar_t* fileNamePtr = (wchar_t*)fileName.utf16();
+      if (!SetFileAttributesW(fileNamePtr, GetFileAttributesW(fileNamePtr) & ~FILE_ATTRIBUTE_READONLY)) {
+        qDebug() << "Failed to RemoveReadOnlyAttributeRecursive()" << fileName;
+        ++ failures;
+      }
+#endif
+    }
+  }
+
+#ifdef Q_OS_WIN
+  wchar_t* directoryPtr = (wchar_t*)directory.utf16();
+  if (!SetFileAttributesW(directoryPtr, GetFileAttributesW(directoryPtr) & ~FILE_ATTRIBUTE_READONLY)) {
+    qDebug() << "Failed to RemoveReadOnlyAttributeRecursive()" << directory;
+    ++ failures;
+  }
+#endif
+
+  return failures == 0 ? true : false;
+}
+
 void ProjectTreeView::DeleteSelectedItems() {
   QList<QTreeWidgetItem*> items = tree->selectedItems();
   
@@ -742,14 +790,38 @@ void ProjectTreeView::DeleteSelectedItems() {
       items.takeAt(i);
     }
   }
+
+  // Collapse the items to recursively remove directory watchers and delete child items.
+  for (QTreeWidgetItem* item : items) {
+    item->setExpanded(false);
+  }
   
   // Remove the remaining items.
   for (QTreeWidgetItem* item : items) {
     QString path = GetItemPath(item);
     if (QFileInfo(path).isDir()) {
-      QDir(path).removeRecursively();
+      // The read-only attribute should be removed first, otherwise removeRecursively() may fail:
+      // https://forum.qt.io/topic/66685/qdir-removerecursively-fails-even-on-empty-folder/3
+      if (!RemoveReadOnlyAttributeRecursive(path)) {
+        qDebug() << "Failed to remove read-only attributes recursively in directory:" << path;
+      }
+
+      // For some reason, removeRecursively() still failed to remove non-empty directories on Windows.
+      // However, calling it repeatedly worked. So, we simply attempt it a number of times ...
+      bool success = false;
+      for (int attempt = 0; attempt < 50; ++ attempt) {
+        if (QDir(path).removeRecursively()) {
+          success = true;
+          break;
+        }
+      }
+      if (!success) {
+        QMessageBox::warning(mainWindow, tr("Error"), tr("Failed to remove directory: %1").arg(path));
+      }
     } else {
-      QFile::remove(path);
+      if (!QFile::remove(path)) {
+        QMessageBox::warning(mainWindow, tr("Error"), tr("Failed to remove file: %1").arg(path));
+      }
     }
   }
 }
@@ -803,6 +875,9 @@ QTreeWidgetItem* ProjectTreeView::InsertItemFor(QTreeWidgetItem* parentFolder, c
   newItem->setChildIndicatorPolicy(QTreeWidgetItem::DontShowIndicatorWhenChildless);
   
   if (isDir) {
+    // For directories, add a watcher.
+    watcher.addPath(path);
+    
     if (!QDir(fileInfo.filePath()).isEmpty()) {
       newItem->setChildIndicatorPolicy(QTreeWidgetItem::ShowIndicator);
     }
@@ -829,7 +904,7 @@ QString ProjectTreeView::GetItemPath(QTreeWidgetItem* item) {
   QDir dir = QDir(pathParts.back());
   for (int i = static_cast<int>(pathParts.size()) - 1; i >= 1; -- i) {
     if (!dir.cd(pathParts[i])) {
-      qDebug() << "ERROR: Failed to cd() into directory in ProjectTreeView";
+      qDebug() << "ERROR: Failed to cd() into directory in ProjectTreeView. Current directory:" << dir.absolutePath() << "Next part:" << pathParts[i] << "Item text:" << item->text(0);
     }
   }
   return dir.filePath(pathParts[0]);

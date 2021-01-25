@@ -463,7 +463,7 @@ bool Document::Save(const QString& path) {
   setPath(QStringLiteral(""));  // stop watching any old file
   
   QFile file(pathCopy);
-  if (!file.open(QIODevice::WriteOnly)) {
+  if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
     setPath(oldPath);  // return to old file on failure
     return false;
   }
@@ -504,7 +504,7 @@ bool Document::OpenBackup(const QString& backupPath, QString* originalPath) {
 
 bool Document::SaveBackup(const QString& backupPath, const QString& originalPath) {
   QFile file(backupPath);
-  if (!file.open(QIODevice::WriteOnly)) {
+  if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
     return false;
   }
   

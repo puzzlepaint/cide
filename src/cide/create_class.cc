@@ -135,7 +135,7 @@ void CreateClassDialog::accept() {
     QString sourcePath = sourcePathEdit->text();
     QString sourceFilename = QFileInfo(sourcePath).fileName();
     QFile source(sourcePath);
-    if (!source.open(QIODevice::WriteOnly)) {
+    if (!source.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
       QMessageBox::warning(this, tr("Error"), tr("Could not create source file: %1.").arg(sourcePath));
       return;
     }
@@ -151,7 +151,7 @@ void CreateClassDialog::accept() {
   
   // Create the header file
   QFile header(headerPath);
-  if (!header.open(QIODevice::WriteOnly)) {
+  if (!header.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
     QMessageBox::warning(this, tr("Error"), tr("Could not create header file: %1.").arg(headerPath));
     return;
   }
@@ -178,7 +178,7 @@ void CreateClassDialog::accept() {
       // Here, we do not reconfigure the project, since the user would need to save this file first.
     } else {
       QFile cmakeFile(cmakeListsPath);
-      if (!cmakeFile.open(QIODevice::WriteOnly)) {
+      if (!cmakeFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
         QMessageBox::warning(this, tr("Error"), tr("Could not open CMakeLists.txt file: %1.").arg(cmakeListsPath));
         return;
       }

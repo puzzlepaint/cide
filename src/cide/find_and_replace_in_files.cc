@@ -480,7 +480,7 @@ void FindAndReplaceInFiles::ReplaceInFile(const QString& filePath, const QString
     }
   }
   
-  if (file.open(QIODevice::WriteOnly)) {
+  if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
     file.write(fileText.toUtf8());  // TODO: Allow saving other formats than UTF-8 only
   } else {
     *errorMessages += tr("File not writable: %1\n").arg(filePath);

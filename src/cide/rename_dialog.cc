@@ -881,7 +881,7 @@ void RenameDialog::RenameInFileOnDisk(const QString& path, const std::vector<Occ
   }
   
   file.close();
-  if (file.open(QIODevice::WriteOnly)) {
+  if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
     file.write(modifiedFileText.toUtf8());
   } else {
     QMessageBox::warning(this, tr("Rename"), tr("File not writable: %1").arg(path));

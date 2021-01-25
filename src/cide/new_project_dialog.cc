@@ -120,7 +120,7 @@ bool NewProjectDialog::CreateNewProject() {
   // Create project files
   // <project_name>.cide
   QFile projectFile(dir.filePath(projectName + ".cide"));
-  if (!projectFile.open(QIODevice::WriteOnly)) {
+  if (!projectFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
     QMessageBox::warning(this, tr("New project"), tr("Failed to create project file (%1).").arg(projectFile.fileName()));
     return false;
   }
@@ -140,7 +140,7 @@ bool NewProjectDialog::CreateNewProject() {
   // CMakeLists.txt
   QString cmakeListsPath = dir.filePath("CMakeLists.txt");
   QFile cmakeListsFile(cmakeListsPath);
-  if (!cmakeListsFile.open(QIODevice::WriteOnly)) {
+  if (!cmakeListsFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
     QMessageBox::warning(this, tr("New project"), tr("Failed to create CMakeLists.txt file (%1).").arg(cmakeListsFile.fileName()));
     return false;
   }
@@ -178,7 +178,7 @@ bool NewProjectDialog::CreateNewProject() {
   // src/<project_name>/main.cc
   QString mainPath = srcDir.filePath("main.cc");
   QFile mainFile(mainPath);
-  if (!mainFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+  if (!mainFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
     QMessageBox::warning(this, tr("New project"), tr("Failed to create main file (%1).").arg(mainFile.fileName()));
     return false;
   }
@@ -210,7 +210,7 @@ bool NewProjectDialog::CreateProjectForExistingCMakeListsTxtFile() {
   
   // Create <project_name>.cide
   QFile projectFile(cmakeFileDir.filePath(projectName + ".cide"));
-  if (!projectFile.open(QIODevice::WriteOnly)) {
+  if (!projectFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
     QMessageBox::warning(this, tr("New project"), tr("Failed to create project file (%1).").arg(projectFile.fileName()));
     return false;
   }

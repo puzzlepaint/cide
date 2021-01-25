@@ -114,7 +114,7 @@ TEST(Document, LineIterator) {
   std::vector<int> blockSizes = {3, 4, 5, 6, 7};
   
   for (int blockSize : blockSizes) {
-    Document doc(blockSize);
+    Document doc(NewlineFormat::Lf, blockSize);
     doc.Replace(doc.FullDocumentRange(), QStringLiteral("Line 1\nLine2\nLine3"));
     
     doc.DebugCheckNewlineoffsets();
@@ -148,7 +148,7 @@ TEST(Document, LineIterator) {
 
 
 TEST(Document, CharacterIterator) {
-  Document doc(2);
+  Document doc(NewlineFormat::Lf, 2);
   doc.Replace(doc.FullDocumentRange(), QStringLiteral("abc"));
   
   Document::CharacterIterator it(&doc, 1);
@@ -190,7 +190,7 @@ TEST(Document, CharacterIterator) {
 
 
 TEST(Document, NewlineCountAndOffsets) {
-  Document doc;
+  Document doc(NewlineFormat::Lf);
   
   EXPECT_EQ(1, doc.LineCount());
   EXPECT_TRUE(doc.DebugCheckNewlineoffsets());
@@ -220,7 +220,7 @@ TEST(Document, Replace) {
   // Create the document with a very small desired block size such that the test
   // will likely use (and thus text) many blocks
   constexpr int desiredBlockSize = 8;
-  Document doc(desiredBlockSize);
+  Document doc(NewlineFormat::Lf, desiredBlockSize);
   QString groundTruth;
   
   // Do a number of random edits
@@ -278,7 +278,7 @@ TEST(Document, Replace) {
 }
 
 TEST(Document, ReplaceOnBlockBoundary) {
-  Document doc(2);
+  Document doc(NewlineFormat::Lf, 2);
   doc.Replace(doc.FullDocumentRange(), QStringLiteral("AACC"));
   
   int blockCount;
@@ -296,7 +296,7 @@ TEST(Document, ReplaceOnBlockBoundary) {
 }
 
 TEST(Document, LineAttributes) {
-  Document doc;
+  Document doc(NewlineFormat::Lf);
   
   doc.Replace(doc.FullDocumentRange(), QStringLiteral("Line0\nLine1\nLine2"));
   EXPECT_EQ(0, doc.lineAttributes(0));
@@ -314,7 +314,7 @@ TEST(Document, LineAttributes) {
 TEST(Document, HighlightRanges1) {
   std::vector<int> blockSizes = {1, 2, 3};
   for (int blockSize : blockSizes) {
-    Document doc(blockSize);
+    Document doc(NewlineFormat::Lf, blockSize);
     doc.Replace(doc.FullDocumentRange(), QStringLiteral("ABC"));
     doc.AddHighlightRange(DocumentRange(2, 3), false, qRgb(255, 0, 0), true);  // Make 'C' red and bold
     Document::CharacterAndStyleIterator it(&doc, 0);
@@ -342,7 +342,7 @@ TEST(Document, HighlightRanges1) {
 TEST(Document, HighlightRanges2) {
   std::vector<int> blockSizes = {1, 2, 3};
   for (int blockSize : blockSizes) {
-    Document doc(blockSize);
+    Document doc(NewlineFormat::Lf, blockSize);
     doc.Replace(doc.FullDocumentRange(), QStringLiteral("ABC"));
     doc.AddHighlightRange(DocumentRange(1, 2), false, qRgb(255, 0, 0), true);  // Make 'B' red and bold
     Document::CharacterAndStyleIterator it(&doc, 0);
@@ -370,7 +370,7 @@ TEST(Document, HighlightRanges2) {
 TEST(Document, HighlightRanges3) {
   std::vector<int> blockSizes = {1, 2, 3};
   for (int blockSize : blockSizes) {
-    Document doc(blockSize);
+    Document doc(NewlineFormat::Lf, blockSize);
     doc.Replace(doc.FullDocumentRange(), QStringLiteral("ABC"));
     doc.AddHighlightRange(DocumentRange(0, 1), false, qRgb(255, 0, 0), true);  // Make 'A' red and bold
     Document::CharacterAndStyleIterator it(&doc, 0);
@@ -414,7 +414,7 @@ TEST(Document, HighlightRangeUpdatingOnEdits) {
     
     // Test: Style on word gets extended when typing characters on the right
     {
-      Document doc(blockSize);
+      Document doc(NewlineFormat::Lf, blockSize);
       doc.Replace(doc.FullDocumentRange(), QStringLiteral("Word   "));
       doc.AddHighlightRange(DocumentRange(0, 4), false, qRgb(255, 0, 0), true);
       doc.Replace(DocumentRange(4, 4), QStringLiteral("AAA"));
@@ -423,7 +423,7 @@ TEST(Document, HighlightRangeUpdatingOnEdits) {
     
     // Test: Style on word does not get extended when typing spaces on the right
     {
-      Document doc(blockSize);
+      Document doc(NewlineFormat::Lf, blockSize);
       doc.Replace(doc.FullDocumentRange(), QStringLiteral("Word   "));
       doc.AddHighlightRange(DocumentRange(0, 4), false, qRgb(255, 0, 0), true);
       doc.Replace(DocumentRange(4, 4), QStringLiteral("   "));
@@ -432,7 +432,7 @@ TEST(Document, HighlightRangeUpdatingOnEdits) {
     
     // Test: Style on word gets extended when typing characters on the left
     {
-      Document doc(blockSize);
+      Document doc(NewlineFormat::Lf, blockSize);
       doc.Replace(doc.FullDocumentRange(), QStringLiteral("   Word"));
       doc.AddHighlightRange(DocumentRange(3, 7), false, qRgb(255, 0, 0), true);
       doc.Replace(DocumentRange(3, 3), QStringLiteral("AAA"));
@@ -441,7 +441,7 @@ TEST(Document, HighlightRangeUpdatingOnEdits) {
     
     // Test: Style on word does not get extended when typing spaces on the left
     {
-      Document doc(blockSize);
+      Document doc(NewlineFormat::Lf, blockSize);
       doc.Replace(doc.FullDocumentRange(), QStringLiteral("   Word"));
       doc.AddHighlightRange(DocumentRange(3, 7), false, qRgb(255, 0, 0), true);
       doc.Replace(DocumentRange(3, 3), QStringLiteral("   "));
@@ -450,7 +450,7 @@ TEST(Document, HighlightRangeUpdatingOnEdits) {
     
     // Test: Style on word gets moved when typing left of it
     {
-      Document doc(blockSize);
+      Document doc(NewlineFormat::Lf, blockSize);
       doc.Replace(doc.FullDocumentRange(), QStringLiteral("   Word"));
       doc.AddHighlightRange(DocumentRange(3, 7), false, qRgb(255, 0, 0), true);
       doc.Replace(DocumentRange(0, 0), QStringLiteral("..."));
@@ -459,7 +459,7 @@ TEST(Document, HighlightRangeUpdatingOnEdits) {
     
     // Test: Style on word gets extended when typing inside of it
     {
-      Document doc(blockSize);
+      Document doc(NewlineFormat::Lf, blockSize);
       doc.Replace(doc.FullDocumentRange(), QStringLiteral("  Word  "));
       doc.AddHighlightRange(DocumentRange(2, 6), false, qRgb(255, 0, 0), true);
       doc.Replace(DocumentRange(4, 4), QStringLiteral("AAA"));
@@ -468,7 +468,7 @@ TEST(Document, HighlightRangeUpdatingOnEdits) {
     
     // Test: Style gets deleted when replacing a larger range
     {
-      Document doc(blockSize);
+      Document doc(NewlineFormat::Lf, blockSize);
       doc.Replace(doc.FullDocumentRange(), QStringLiteral("  Word  "));
       doc.AddHighlightRange(DocumentRange(2, 6), false, qRgb(255, 0, 0), true);
       doc.Replace(DocumentRange(1, 7), QStringLiteral("AAA"));
@@ -477,7 +477,7 @@ TEST(Document, HighlightRangeUpdatingOnEdits) {
     
     // Test: Styles get cut when replacing parts of them with spaces
     {
-      Document doc(blockSize);
+      Document doc(NewlineFormat::Lf, blockSize);
       doc.Replace(doc.FullDocumentRange(), QStringLiteral("Word  Word"));
       doc.AddHighlightRange(DocumentRange(0, 4), false, qRgb(255, 0, 0), true);
       doc.AddHighlightRange(DocumentRange(6, 10), false, qRgb(255, 0, 0), true);
@@ -487,7 +487,7 @@ TEST(Document, HighlightRangeUpdatingOnEdits) {
     
     // Test: Styles get extended partially when cutting them, up to whitespace
     {
-      Document doc(blockSize);
+      Document doc(NewlineFormat::Lf, blockSize);
       doc.Replace(doc.FullDocumentRange(), QStringLiteral("Word  Word"));
       doc.AddHighlightRange(DocumentRange(0, 4), false, qRgb(255, 0, 0), true);
       doc.AddHighlightRange(DocumentRange(6, 10), false, qRgb(255, 0, 0), true);
@@ -497,7 +497,7 @@ TEST(Document, HighlightRangeUpdatingOnEdits) {
     
     // Test: Complex example (with more ranges)
     {
-      Document doc(blockSize);
+      Document doc(NewlineFormat::Lf, blockSize);
       doc.Replace(doc.FullDocumentRange(), QStringLiteral("Word  Word  Word"));
       doc.AddHighlightRange(DocumentRange(0, 4), false, qRgb(255, 0, 0), true);
       doc.AddHighlightRange(DocumentRange(6, 10), false, qRgb(255, 0, 0), true);
@@ -511,7 +511,7 @@ TEST(Document, HighlightRangeUpdatingOnEdits) {
 TEST(Document, UndoRedo) {
   std::vector<int> blockSizes = {2, 4, 5};
   for (int blockSize : blockSizes) {
-    Document doc(blockSize);
+    Document doc(NewlineFormat::Lf, blockSize);
     doc.Replace(doc.FullDocumentRange(), QStringLiteral("Cartoon"));
     doc.Replace(DocumentRange(0, 4), QStringLiteral("Typh"));
     
@@ -546,15 +546,17 @@ TEST(CodeCompletion, Sorting) {
     
     items.emplace_back();
     items.back().filterText = (testIndex == 0) ? "Test" : "Something";
+    items.back().lowercaseFilterText = items.back().filterText.toLower();
     
     items.emplace_back();
     items.back().filterText = (testIndex == 0) ? "Something" : "Test";
+    items.back().lowercaseFilterText = items.back().filterText.toLower();
     
     CodeCompletionWidget* widget = new CodeCompletionWidget(std::move(items), nullptr, QPoint(0, 0), nullptr);
     widget->SetFilterText(QStringLiteral("TeAst"));
     std::vector<CompletionItem> sortedItems = widget->GetSortedItems();
     
-    EXPECT_EQ(2, sortedItems.size());
+    ASSERT_EQ(2, sortedItems.size());
     
     // "Te[A]st" matched with "Test"
     EXPECT_EQ(4, sortedItems[0].matchScore.matchedCharacters);
@@ -571,7 +573,7 @@ TEST(CodeCompletion, Sorting) {
     widget->SetFilterText(QStringLiteral("Tet"));
     sortedItems = widget->GetSortedItems();
     
-    EXPECT_EQ(2, sortedItems.size());
+    ASSERT_EQ(2, sortedItems.size());
     
     // "Tet" matched with "Te[s]t"
     EXPECT_EQ(3, sortedItems[0].matchScore.matchedCharacters);
@@ -588,7 +590,7 @@ TEST(CodeCompletion, Sorting) {
     widget->SetFilterText(QStringLiteral("TeFt"));
     sortedItems = widget->GetSortedItems();
     
-    EXPECT_EQ(2, sortedItems.size());
+    ASSERT_EQ(2, sortedItems.size());
     
     // "TeFt" matched with "Test"
     EXPECT_EQ(3, sortedItems[0].matchScore.matchedCharacters);
@@ -607,6 +609,7 @@ TEST(CodeCompletion, Sorting) {
 }
 
 
+#ifndef _WIN32
 TEST(Project, Reconfigure) {
   // Create a project in a temporary directory
   QString tmpPath = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
@@ -708,6 +711,7 @@ TEST(Project, Reconfigure) {
     }
   }
 }
+#endif
 
 
 /// Tests the abort mechanism of RunInQtThreadBlocking().

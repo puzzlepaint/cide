@@ -90,7 +90,7 @@ The following build dependencies must be present:
 | ----------------------------------- | ------------------------ |
 | [libclang](https://clang.llvm.org/) | 9.0.1, 10.0.0, 11.0.1    |
 | [Qt5](https://www.qt.io/)           | 5.12.3, 5.14.2, 5.15.0   |
-| [libgit2](https://libgit2.org/)     | 0.28.4, 1.0.1            |
+| [libgit2](https://libgit2.org/)     | 0.28.4, 1.0.1, 1.1.0     |
 
 The following runtime dependencies should be present:
 

@@ -19,21 +19,34 @@ class GLSLTraverser : public glslang::TIntermTraverser {
       : document(document),
         documentContent(documentContent),
         lineOffsets(lineOffsets),
+        documentPath(document->path().toStdString()),
         perVariableColoring(Settings::Instance().GetUsePerVariableColoring()) {}
   
   // The functions below must return true to have the external traversal
-  // continue on to the childred. If they would traverse the children themselves,
+  // continue on to the children. If they would traverse the children themselves,
   // they could return false instead.
   
   // See glslang/MachineIndependent/intermOut.cpp for an example that prints the tree while traversing it.
   
   virtual bool visitBinary(TVisit, TIntermBinary* /*node*/) override {
+    // if (strcmp(node->getLoc().getFilenameStr(), documentPath.c_str()) != 0) { return false; }
+    
     // TODO
     
     return true;
   }
   
   virtual bool visitUnary(TVisit, TIntermUnary* /*node*/) override {
+    // if (strcmp(node->getLoc().getFilenameStr(), documentPath.c_str()) != 0) { return false; }
+    
+    // if (node->getOp() == EOpIsNan) {
+    //   qDebug() << "Unary: " << node->getCompleteString().c_str() << " at: " << node->getLoc().line << ", " << node->getLoc().column;
+    //   qDebug() << "Unary's operand: " << node->getOperand();
+    //   if (node->getOperand()) {
+    //     qDebug() << "  Operand loc: " << node->getOperand()->getLoc().line << ", " << node->getOperand()->getLoc().column;
+    //   }
+    // }
+    
     // TODO
     
     return true;
@@ -41,6 +54,7 @@ class GLSLTraverser : public glslang::TIntermTraverser {
   
   virtual bool visitAggregate(TVisit, TIntermAggregate* node) override {
     if (node->getLoc().line == 0) { return true; }  // seemingly no valid location information
+    if (strcmp(node->getLoc().getFilenameStr(), documentPath.c_str()) != 0) { return false; }
     
     const auto& functionDefinitionStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::FunctionDefinition);
     const auto& functionUseStyle = Settings::Instance().GetConfiguredTextStyle(Settings::TextStyle::FunctionUse);
@@ -460,6 +474,8 @@ class GLSLTraverser : public glslang::TIntermTraverser {
   }
   
   virtual bool visitSelection(TVisit, TIntermSelection* /*node*/) override {
+    // if (strcmp(node->getLoc().getFilenameStr(), documentPath.c_str()) != 0) { return false; }
+    
     // TODO
     
     // qDebug() << "Selection at: " << node->getLoc().line << ", " << node->getLoc().column;
@@ -467,6 +483,8 @@ class GLSLTraverser : public glslang::TIntermTraverser {
   }
   
   virtual void visitConstantUnion(TIntermConstantUnion* /*node*/) override {
+    // if (strcmp(node->getLoc().getFilenameStr(), documentPath.c_str()) != 0) { return false; }
+    
     // TODO
     
     // qDebug() << "ConstantUnion at: " << node->getLoc().line << ", " << node->getLoc().column;
@@ -474,6 +492,7 @@ class GLSLTraverser : public glslang::TIntermTraverser {
   
   virtual void visitSymbol(TIntermSymbol* node) override {
     if (node->getLoc().line == 0) { return; }  // seemingly no valid location information
+    if (strcmp(node->getLoc().getFilenameStr(), documentPath.c_str()) != 0) { return; }
     
     // TODO: Never generate a definition for built-in variables such as for example gl_GlobalInvocationID.
     // TODO: Also, descriptors should not be treated as a definition the first time they are used in the shader code.
@@ -519,7 +538,7 @@ class GLSLTraverser : public glslang::TIntermTraverser {
         nameRange = DocumentRange(rangeStart, rangeStart + name.size());
       }
     }
-    qDebug() << "Symbol named " << QString::fromUtf8(node->getName().c_str()) << " has range: " << documentContent.mid(nameRange.start.offset, nameRange.end.offset - nameRange.start.offset);
+    // qDebug() << "Symbol named " << QString::fromUtf8(node->getName().c_str()) << " has range: " << documentContent.mid(nameRange.start.offset, nameRange.end.offset - nameRange.start.offset);
     
     if (perVariableColoring) {
       // We usually override the text color, but do override the background color instead if the style does not affect the text color.
@@ -532,6 +551,8 @@ class GLSLTraverser : public glslang::TIntermTraverser {
   }
   
   virtual bool visitLoop(TVisit, TIntermLoop* /*node*/) override {
+    // if (strcmp(node->getLoc().getFilenameStr(), documentPath.c_str()) != 0) { return false; }
+    
     // TODO
     
     // qDebug() << "Loop at: " << node->getLoc().line << ", " << node->getLoc().column;
@@ -539,6 +560,8 @@ class GLSLTraverser : public glslang::TIntermTraverser {
   }
   
   virtual bool visitBranch(TVisit, TIntermBranch* /*node*/) override {
+    // if (strcmp(node->getLoc().getFilenameStr(), documentPath.c_str()) != 0) { return false; }
+    
     // TODO
     
     // qDebug() << "Branch at: " << node->getLoc().line << ", " << node->getLoc().column;
@@ -546,6 +569,8 @@ class GLSLTraverser : public glslang::TIntermTraverser {
   }
   
   virtual bool visitSwitch(TVisit, TIntermSwitch* /*node*/) override {
+    // if (strcmp(node->getLoc().getFilenameStr(), documentPath.c_str()) != 0) { return false; }
+    
     // TODO
     
     // qDebug() << "Switch at: " << node->getLoc().line << ", " << node->getLoc().column;
@@ -655,6 +680,7 @@ class GLSLTraverser : public glslang::TIntermTraverser {
   Document* document;
   const QString& documentContent;
   const std::vector<unsigned>& lineOffsets;
+  std::string documentPath;
   
   bool perVariableColoring;
 };

@@ -866,7 +866,7 @@ void MainWindow::ParseIssuesForCurrentFile() {
   // Get all parse diagnostics.
   QString issuesString = QStringLiteral("");
   
-  CXFile documentFile = clang_getFile(TU->TU(), QFileInfo(tab->document->path()).canonicalFilePath().toUtf8().data());
+  // CXFile documentFile = clang_getFile(TU->TU(), QFileInfo(tab->document->path()).canonicalFilePath().toUtf8().data());
   
   unsigned numDiagnostics = clang_getNumDiagnostics(TU->TU());
   for (unsigned diagnosticIndex = 0; diagnosticIndex < numDiagnostics; ++ diagnosticIndex) {
@@ -892,16 +892,16 @@ void MainWindow::ParseIssuesForCurrentFile() {
           &diagnosticColumn,
           nullptr);
       
-      if (clang_File_isEqual(diagnosticFile, documentFile)) {
+      // if (clang_File_isEqual(diagnosticFile, documentFile)) {
         issuesString += tr("<b>");
-      }
+      // }
       issuesString +=
           ClangString(clang_getFileName(diagnosticFile)).ToQString().toHtmlEscaped() + QStringLiteral(":") +
           QString::number(diagnosticLine) + QStringLiteral(":") +
           QString::number(diagnosticColumn);
-      if (clang_File_isEqual(diagnosticFile, documentFile)) {
+      // if (clang_File_isEqual(diagnosticFile, documentFile)) {
         issuesString += tr("</b>");
-      }
+      // }
       
       CXDiagnosticSeverity severity = clang_getDiagnosticSeverity(diagnostic);
       if (severity == CXDiagnostic_Fatal) {

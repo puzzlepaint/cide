@@ -181,6 +181,8 @@ static void RetrieveDiagnostics(Document* document, const char* infoLog, const s
   // ERROR: /home/thomas/.../shaderfile.comp:27: '' : compilation terminated 
   // ERROR: 2 compilation errors.  No code generated.
   
+  // TODO: Parse the filename that the errors come from. Properly show errors that come from included files after the corresponding #include directive.
+  
   QString infoString(infoLog);
   
   int lineStart = 0;
@@ -274,7 +276,81 @@ static void RetrieveDiagnostics(Document* document, const char* infoLog, const s
   }
 }
 
-void ParseGLSLFile(const QString& /*canonicalPath*/, Document* document, MainWindow* /*mainWindow*/) {
+class GLSLIncluder : public glslang::TShader::Includer {
+ public:
+  GLSLIncluder(MainWindow* mainWindow)
+      : mainWindow(mainWindow) {}
+  
+  IncludeResult* includeSystem(const char* headerName, const char* includerName, size_t inclusionDepth) override {
+    // Prevent infinite recursion
+    if (inclusionDepth > 20) {
+      std::string* errorMsg = new std::string("Inclusion depth is larger than 20. Failing GLSL inclusion to prevent possible infinite recursion.");
+      // Leaving the headerName field of the IncludeResult empty is interpreted as returning an error message.
+      return new IncludeResult(/*headerName*/ "", errorMsg->c_str(), errorMsg->size(), /*userData*/ errorMsg);
+    }
+    
+    // Build the included path
+    QString headerString = headerName;
+    
+    QString includedPath;
+    if (!headerString.isEmpty() && headerString[0] == '/') {
+      // Absolute path
+      includedPath = headerString;
+    } else {
+      // Relative path. We always interpret it as being relative to the includer-file's directory.
+      // TODO: Should we allow to specify a list of include directories for GLSL files?
+      includedPath = QFileInfo(includerName).dir().absoluteFilePath(headerString);
+    }
+    includedPath = QFileInfo(includedPath).canonicalFilePath();
+    
+    // qDebug() << "GLSL includer headerName:" << headerName;
+    // qDebug() << "GLSL includer includerName:" << includerName;
+    // qDebug() << "GLSL includer includedPath:" << includedPath;
+    
+    // Try to find the included file among the open documents
+    std::string* includedText;
+    bool includeResolved = false;
+    
+    RunInQtThreadBlocking([&]() {
+      Document* includedDocument = nullptr;
+      DocumentWidget* includedDocumentWidget = nullptr;
+      if (mainWindow->GetDocumentAndWidgetForPath(includedPath, &includedDocument, &includedDocumentWidget)) {
+        includedText = new std::string(includedDocument->GetDocumentText().toStdString());
+        includeResolved = true;
+      }
+    });
+    
+    // If the file was not among the open documents, try to load it from disk
+    if (!includeResolved) {
+      QFile includedFile(includedPath);
+      if (includedFile.open(QFile::ReadOnly | QFile::Text)) {
+        includedText = new std::string(QString::fromUtf8(includedFile.readAll()).toStdString());  // TODO: Support other encodings than UTF-8
+        includeResolved = true;
+      }
+    }
+    
+    if (includeResolved) {
+      return new IncludeResult(includedPath.toStdString(), includedText->data(), includedText->size(), /*userData*/ includedText);
+    } else {
+      std::string* errorMsg = new std::string("Could not open file: ");
+      *errorMsg += includedPath.toStdString();
+      // Leaving the headerName field of the IncludeResult empty is interpreted as returning an error message.
+      return new IncludeResult(/*headerName*/ "", errorMsg->c_str(), errorMsg->size(), /*userData*/ errorMsg);
+    }
+  }
+  
+  void releaseInclude(IncludeResult* result) override {
+    if (result) {
+      delete reinterpret_cast<std::string*>(result->userData);
+      delete result;
+    }
+  }
+  
+ private:
+  MainWindow* mainWindow;
+};
+
+void ParseGLSLFile(const QString& /*canonicalPath*/, Document* document, MainWindow* mainWindow) {
   if (!document) {
     qDebug() << "Null document passed to ParseGLSLFile()";
     return;
@@ -389,11 +465,14 @@ void ParseGLSLFile(const QString& /*canonicalPath*/, Document* document, MainWin
   // TODO: Allow the user to configure a config file to load the resource limits from
   TBuiltInResource resources = DefaultTBuiltInResource;
   
+  GLSLIncluder includer(mainWindow);
+  
   /*bool parseSuccess =*/ shader.parse(
       &resources,
       /*defaultVersion*/ 110,  // default shader version used when there is no "#version" in the shader itself
       /*forwardCompatible*/ false,  // if true, use of deprecated features results in errors
-      /*messages*/ static_cast<EShMessages>(EShMsgDefault | EShMsgSpvRules | EShMsgVulkanRules | EShMsgKeepUncalled));  // TODO: What are the best flags to use here? EShMsgRelaxedErrors? EShMsgCascadingErrors?
+      /*messages*/ static_cast<EShMessages>(EShMsgDefault | EShMsgSpvRules | EShMsgVulkanRules | EShMsgKeepUncalled | EShMsgCascadingErrors),  // TODO: What are the best flags to use here? EShMsgRelaxedErrors?
+      includer);
   
   // For debugging:
   // qDebug() << "GLSL parse success: " << parseSuccess;

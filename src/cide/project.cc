@@ -821,7 +821,7 @@ bool Project::Configure(QString* errorReason, QString* warnings, bool* errorDisp
       targetBuildDir = QDir(targetBuildFolder);
     }
     
-    if (type != "UTILITY") {
+    if (type != "UTILITY" && targetFileNode["nameOnDisk"].IsDefined()) {
       QString targetPath = targetBuildDir.filePath(QString::fromStdString(targetFileNode["nameOnDisk"].as<std::string>()));
       // qDebug() << "- path:" << targetPath;
       newTarget.path = targetPath;

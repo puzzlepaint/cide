@@ -1453,11 +1453,15 @@ void MainWindow::BuildCurrentTarget() {
     switch (exitStatus) {
     case QProcess::NormalExit:
       if (buildErrors > 0 && buildWarnings > 0) {
-        FinishedBuilding(tr("<span style=\"color:red\">Errors: %1</span> <span style=\"color:yellow\">Warnings: %2</span>").arg(buildErrors).arg(buildWarnings));
+        FinishedBuilding(tr("<span style=\"color:red\">Errors: %1</span> <span style=\"color:orange\">Warnings: %2</span>").arg(buildErrors).arg(buildWarnings));
       } else if (buildErrors > 0) {
         FinishedBuilding(tr("<span style=\"color:red\">Errors: %1</span>").arg(buildErrors));
       } else if (buildWarnings > 0) {
-        FinishedBuilding(tr("<span style=\"color:yellow\">Built with %1 warning%2</span>").arg(buildWarnings).arg((buildWarnings > 1) ? QStringLiteral("s") : QStringLiteral("")));
+        if (exitCode == 0) {
+          FinishedBuilding(tr("<span style=\"color:orange\">Built with %1 warning%2</span>").arg(buildWarnings).arg((buildWarnings > 1) ? QStringLiteral("s") : QStringLiteral("")));
+        } else {
+          FinishedBuilding(tr("<span style=\"color:red\">Build failed, with %1 warning%2, and errors not detected by CIDE. Please check the textual build output.</span>").arg(buildWarnings).arg((buildWarnings > 1) ? QStringLiteral("s") : QStringLiteral("")));
+        }
       } else if (exitCode == 0) {
         FinishedBuilding(tr("<span style=\"color:green\">Built successfully</span>"));
       } else {

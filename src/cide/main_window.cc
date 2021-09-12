@@ -37,7 +37,7 @@
 #include "cide/settings.h"
 #include "cide/util.h"
 
-constexpr int maxBuildIssueCount = 100;  // TODO: Make configurable
+constexpr int maxBuildIssueCount = 200;  // TODO: Make configurable
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent) {
@@ -1543,7 +1543,7 @@ void MainWindow::TryParseBuildStdout() {
     
     buildOutputText += line + QStringLiteral("\n");
     if (buildOutputTextLabel) {
-      buildOutputTextLabel->setText(buildOutputText);
+      buildOutputTextLabel->setPlainText(buildOutputText);
       buildIssuesWidget->resize(buildIssuesWidget->sizeHint());
     }
     
@@ -1624,7 +1624,7 @@ void MainWindow::TryParseBuildStderr() {
     
     buildOutputText += line + QStringLiteral("\n");
     if (buildOutputTextLabel) {
-      buildOutputTextLabel->setText(buildOutputText);
+      buildOutputTextLabel->setPlainText(buildOutputText);
       buildIssuesWidget->resize(buildIssuesWidget->sizeHint());
     }
     
@@ -1788,9 +1788,10 @@ void MainWindow::ViewBuildOutputAsText() {
   }
   
   if (!buildOutputTextLabel) {
-    buildOutputTextLabel = new QLabel(buildOutputText);
-    buildOutputTextLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
-    buildOutputTextLabel->setFont(Settings::Instance().GetDefaultFont());
+    buildOutputTextLabel = new QTextEdit();
+    buildOutputTextLabel->setCurrentFont(Settings::Instance().GetDefaultFont());
+    buildOutputTextLabel->setPlainText(buildOutputText);
+    buildOutputTextLabel->setReadOnly(true);
     buildIssuesLayout->insertWidget(0, buildOutputTextLabel);
     buildIssuesWidget->resize(buildIssuesWidget->sizeHint());
   }

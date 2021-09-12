@@ -285,7 +285,7 @@ class MainWindow : public QMainWindow {
   QScrollArea* buildIssuesRichTextScrollArea;
   WidgetWithRightClickSignal* buildIssuesWidget;
   QVBoxLayout* buildIssuesLayout;
-  QLabel* buildOutputTextLabel = nullptr;
+  QTextEdit* buildOutputTextLabel = nullptr;
   QLabel* lastAddedBuildIssueLabel = nullptr;
   
   // Run dock widget

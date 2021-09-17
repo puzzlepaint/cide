@@ -50,6 +50,7 @@ add_subdirectory(third_party/glslang)
 # Override YAML-CPP's option defaults to not build contrib and tools
 option(YAML_CPP_BUILD_CONTRIB "Enable yaml-cpp contrib in library" OFF)
 option(YAML_CPP_BUILD_TOOLS "Enable parse tools" OFF)
+option(YAML_BUILD_SHARED_LIBS "Build yaml-cpp shared library" ON)
 add_subdirectory(third_party/yaml-cpp)
 
 # Packaged dependency: googletest

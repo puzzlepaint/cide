@@ -567,6 +567,7 @@ void ProjectTreeView::ItemRightClicked(QTreeWidgetItem* item, QPoint pos) {
   createClassAction->setVisible(isDir);
   createFileAction->setVisible(isDir);
   createFolderAction->setVisible(isDir);
+  searchInFolderAction->setVisible(isDir);
   renameAction->setVisible(true);
   deleteAction->setVisible(true);
   
@@ -582,6 +583,7 @@ void ProjectTreeView::RightClicked(QPoint pos) {
   createClassAction->setVisible(false);
   createFileAction->setVisible(false);
   createFolderAction->setVisible(false);
+  searchInFolderAction->setVisible(false);
   renameAction->setVisible(false);
   deleteAction->setVisible(false);
   

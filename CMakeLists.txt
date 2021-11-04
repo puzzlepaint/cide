@@ -100,7 +100,7 @@ target_compile_options(GitVersionTool PUBLIC
 # with make.
 add_custom_command(
   OUTPUT ${CMAKE_BINARY_DIR}/CIDE_git_version.h ${CMAKE_BINARY_DIR}/always_rebuild
-  COMMAND ${CMAKE_BINARY_DIR}/GitVersionTool ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR}/CIDE_git_version.h
+  COMMAND $<TARGET_FILE:GitVersionTool> ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR}/CIDE_git_version.h
   DEPENDS GitVersionTool
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )

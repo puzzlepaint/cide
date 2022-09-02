@@ -1194,7 +1194,7 @@ bool Project::FindCompilerDefaults(
     if (line.startsWith("#include ")) {
       includesListStarted = true;
       continue;
-    } else if (line.startsWith("clang version") || line.startsWith("gcc version")) {
+    } else if (line.startsWith("clang version") || line.startsWith("gcc version") || (i == 0 && line.contains("clang version"))) {
       *compilerVersion = line.trimmed();
     } else if (line == "End of search list.") {
       break;

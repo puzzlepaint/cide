@@ -25,6 +25,9 @@ std::vector<QString> sourceExtensions = {
     QStringLiteral("cxx"),
     QStringLiteral("cu"),
     QStringLiteral("inl"),
+    QStringLiteral("m"),     // Objective-C
+    QStringLiteral("mm"),    // Objective-C++
+    QStringLiteral("metal"), // Metal Shader Language (based on C++)
 };
 
 bool GuessIsCFile(const QString& path) {

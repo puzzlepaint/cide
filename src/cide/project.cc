@@ -26,9 +26,11 @@ std::vector<QByteArray> CompileSettings::BuildCommandLineArgs(bool enableSpellCh
   commandLineArgs.reserve(
       (enableSpellCheck ? 1 : 0) +
       defines.size() +
+      1 +
       2 * systemIncludes.size() +
       includes.size() +
-      compileCommandFragments.size());
+      compileCommandFragments.size() +
+      1);
   
   if (enableSpellCheck) {
     // This option adds useful suggestions ("did you mean X?") to some errors
@@ -693,28 +695,45 @@ bool Project::Configure(QString* errorReason, QString* warnings, bool* errorDisp
   cDefaultIncludes.clear();
   QString cCompilerVersion;
   
+  QString osxSysroot;
+  
   for (int i = 0; i < cacheEntriesNode.size(); ++ i) {
     YAML::Node node = cacheEntriesNode[i];
+    std::string nodeName = node["name"].as<std::string>();
     
-    if (node["name"].as<std::string>() == "CMAKE_CXX_COMPILER") {
+    if (nodeName == "CMAKE_CXX_COMPILER") {
       cxxCompiler = node["value"].as<std::string>();
       FindCompilerDefaults(cxxCompiler, &cxxDefaultIncludes, &cxxCompilerVersion);
       
       if (clangResourceDir.isEmpty()) {
         QueryClangResourceDir(cxxCompiler, &clangResourceDir);
       }
-    } else if (node["name"].as<std::string>() == "CMAKE_C_COMPILER") {
+    } else if (nodeName == "CMAKE_C_COMPILER") {
       cCompiler = node["value"].as<std::string>();
       FindCompilerDefaults(cCompiler, &cDefaultIncludes, &cCompilerVersion);
       
       if (clangResourceDir.isEmpty()) {
         QueryClangResourceDir(cCompiler, &clangResourceDir);
       }
+    } else if (nodeName == "CMAKE_OSX_SYSROOT") {
+      osxSysroot = QString::fromStdString(node["value"].as<std::string>());
     }
   }
   
   if (cxxCompiler.empty() && cCompiler.empty()) {
     qDebug("Warning: Found neither CXX nor C compiler path");
+    
+    // This seems to happen when using the XCode generator.
+    // Try to find the compiler resources anyway, using the configured default compiler.
+    FindCompilerDefaults(cxxCompiler, &cxxDefaultIncludes, &cxxCompilerVersion);
+    if (clangResourceDir.isEmpty()) {
+      QueryClangResourceDir(cxxCompiler, &clangResourceDir);
+    }
+    
+    FindCompilerDefaults(cCompiler, &cDefaultIncludes, &cCompilerVersion);
+    if (clangResourceDir.isEmpty()) {
+      QueryClangResourceDir(cCompiler, &clangResourceDir);
+    }
   }
   
   // Check whether the used libclang version matches the versions of the compilers that were used
@@ -885,6 +904,16 @@ bool Project::Configure(QString* errorReason, QString* warnings, bool* errorDisp
       }
       // qDebug() << "- language:" << QString::fromStdString(language);
       
+      #ifdef __APPLE__
+        // On macOS, it seems that when building with the Ninja generator, the -isysroot setting is provided by CMake
+        // in the target's compileCommandFragments, but when building with XCode, it is not. So, we manually
+        // add it here to be on the safe side.
+        if (!osxSysroot.isEmpty()) {
+          newSettings.compileCommandFragments.emplace_back("-isysroot");
+          newSettings.compileCommandFragments.emplace_back(osxSysroot.toLocal8Bit());
+        }
+      #endif
+      
       YAML::Node compileCommandNode = settingsNode["compileCommandFragments"];
       if (compileCommandNode.IsSequence()) {
         for (int c = 0; c < compileCommandNode.size(); ++ c) {
@@ -894,7 +923,16 @@ bool Project::Configure(QString* errorReason, QString* warnings, bool* errorDisp
             QStringList fragments = QString::fromStdString(compileCommandNode[c]["fragment"].as<std::string>()).split(QChar(' '), QString::SplitBehavior::SkipEmptyParts);
           #endif
           for (const QString& fragment : fragments) {
-            newSettings.compileCommandFragments.emplace_back(fragment);
+            // Not sure why this happens, but I have seen the -std=c++17 flag being given in the following way on macOS:
+            // "fragment" : "'-std=c++17'"
+            // This requires removing the ' characters, otherwise libclang will not parse it correctly.
+            // Not sure whether this may happen to any other flags as well; so far, I only observed it for this exact flag.
+            if (fragment.startsWith('\'') && fragment.endsWith('\'')) {
+              newSettings.compileCommandFragments.emplace_back(fragment.mid(1, fragment.size() - 2));
+            } else {
+              newSettings.compileCommandFragments.emplace_back(fragment);
+            }
+            
             // qDebug() << "- compile command fragment:" << newSettings.compileCommandFragments.back();
           }
         }

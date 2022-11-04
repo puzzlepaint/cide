@@ -1,2 +1,9 @@
 build*/
 *.cide
+
+# =========================
+# OSX
+# =========================
+.DS_Store
+.AppleDouble
+.LSOverride

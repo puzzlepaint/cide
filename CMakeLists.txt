@@ -257,11 +257,21 @@ add_executable(CIDE WIN32
 target_link_libraries(CIDE
   CIDEBaseLib
 )
-
-file(
-  COPY ${CMAKE_CURRENT_SOURCE_DIR}/resources
-  DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
-)
+if (APPLE)
+  set_target_properties(CIDE PROPERTIES
+      MACOSX_BUNDLE ON
+      MACOSX_BUNDLE_BUNDLE_NAME "CIDE"
+      MACOSX_BUNDLE_BUNDLE_IDENTIFIER "net.puzzlepaint.cide")
+  file(
+    COPY ${CMAKE_CURRENT_SOURCE_DIR}/resources
+    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/CIDE.app/Contents/MacOS
+  )
+else()
+  file(
+    COPY ${CMAKE_CURRENT_SOURCE_DIR}/resources
+    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+  )
+endif()
 
 
 # --- CIDE Test executable ---

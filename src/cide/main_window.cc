@@ -92,6 +92,7 @@ MainWindow::MainWindow(QWidget* parent)
   //       done after adding a tab (and removed before adding a tab) such that
   //       the connection is not called while a half-constructed tab exists.
   tabBar = new TabBar(this);
+  tabBar->setUsesScrollButtons(true);
   tabBar->setElideMode(Qt::ElideNone);
   tabBar->setExpanding(false);
   tabBar->setMovable(true);

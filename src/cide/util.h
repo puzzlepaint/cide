@@ -58,7 +58,12 @@ QString FindDefaultClangBinaryPath();
 /// automatically close under a variety of conditions there, such as any mouse clicks.
 /// Qt::X11BypassWindowManagerHint is required to be able to move the widget partially off-screen.
 inline Qt::WindowFlags GetCustomTooltipWindowFlags() {
-  return Qt::Widget | Qt::Tool | Qt::CustomizeWindowHint | Qt::FramelessWindowHint | Qt::WindowDoesNotAcceptFocus | Qt::NoDropShadowWindowHint | Qt::X11BypassWindowManagerHint;
+  return Qt::Widget | Qt::Tool | Qt::CustomizeWindowHint | Qt::FramelessWindowHint | Qt::WindowDoesNotAcceptFocus | Qt::NoDropShadowWindowHint | Qt::X11BypassWindowManagerHint
+#if __APPLE__
+      // Required to prevent the code info tooltip from disappearing the first time it is clicked
+      | Qt::ToolTip
+#endif
+    ;
 }
 
 

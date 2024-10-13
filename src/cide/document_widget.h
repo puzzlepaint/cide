@@ -303,6 +303,8 @@ class DocumentWidget : public QWidget {
   bool IsCursorLikelyInCodeSection();
   void ApplyWordCompletion(const WordCompletion& item);
   
+  int GetSpacesPerTab();
+  
   void resizeEvent(QResizeEvent* event) override;
   void paintEvent(QPaintEvent* event) override;
   void mousePressEvent(QMouseEvent* event) override;
@@ -416,7 +418,7 @@ class DocumentWidget : public QWidget {
   QTimer* cursorBlinkTimer;
   int cursorBlinkInterval = 500;
   
-  int spacesPerTab = 2;
+  int spacesPerTab = -1;
   
   bool isCFile = false;
   bool isGLSLFile = false;

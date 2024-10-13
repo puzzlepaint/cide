@@ -459,6 +459,13 @@ SettingsDialog::SettingsDialog(QWidget* parent)
 }
 
 QWidget* SettingsDialog::CreateGeneralCategory() {
+  QLabel* spacesPerTabLabel = new QLabel(tr("Spaces per tab: "));
+  spacesPerTabEdit = new QLineEdit(QString::number(Settings::Instance().GetSpacesPerTab()));
+  spacesPerTabEdit->setValidator(new QIntValidator(0, std::numeric_limits<int>::max(), spacesPerTabEdit));
+  QHBoxLayout* spacesPerTabLayout = new QHBoxLayout();
+  spacesPerTabLayout->addWidget(spacesPerTabLabel);
+  spacesPerTabLayout->addWidget(spacesPerTabEdit);
+  
   QLabel* fontSizeLabel = new QLabel(tr("Font size (floating-point values allowed): "));
   fontSizeEdit = new QLineEdit(QString::number(Settings::Instance().GetFontSize()));
   QHBoxLayout* fontSizeLayout = new QHBoxLayout();
@@ -515,6 +522,7 @@ QWidget* SettingsDialog::CreateGeneralCategory() {
   defaultNewlineFormatLayout->addWidget(defaultNewlineFormatCombo);
   
   QVBoxLayout* layout = new QVBoxLayout();
+  layout->addLayout(spacesPerTabLayout);
   layout->addLayout(fontSizeLayout);
   layout->addLayout(headerSourceOrderingLayout);
   layout->addLayout(codeCompletionConfirmationLayout);
@@ -523,6 +531,9 @@ QWidget* SettingsDialog::CreateGeneralCategory() {
   layout->addStretch(1);
   
   // --- Connections ---
+  connect(spacesPerTabEdit, &QLineEdit::textChanged, [&](const QString& text) {
+    Settings::Instance().SetSpacesPerTab(text.toInt());
+  });
   connect(fontSizeEdit, &QLineEdit::textChanged, [&](const QString& text) {
     Settings::Instance().SetFontSize(text.toFloat());
     Settings::Instance().ReloadFonts();

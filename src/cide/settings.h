@@ -261,6 +261,10 @@ class Settings : public QObject {
   /// (Re-)loads the fonts. This must be done after changing the font size.
   void ReloadFonts();
   
+  inline int GetSpacesPerTab() {
+    return settings.value("spaces_per_tab", 2).toInt();
+  }
+  
   inline float GetFontSize() const {
     float defaultFontSize = 10.5f;
     #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
@@ -382,6 +386,10 @@ class Settings : public QObject {
   static void ShowSettingsWindow(QWidget* parent = nullptr);
   
  public slots:
+  inline void SetSpacesPerTab(int spacesPerTab) {
+    settings.setValue("spaces_per_tab", spacesPerTab);
+  }
+  
   inline void SetFontSize(float size) {
     settings.setValue("font_size", size);
   }
@@ -500,6 +508,7 @@ class SettingsDialog : public QDialog {
   // "General" category
   QWidget* CreateGeneralCategory();
 
+  QLineEdit* spacesPerTabEdit;
   QLineEdit* fontSizeEdit;
   QComboBox* headerSourceOrderingCombo;
   QComboBox* codeCompletionConfirmationCombo;

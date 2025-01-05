@@ -1667,7 +1667,7 @@ int DocumentWidget::GetTextWidth(const QString& text, int startColumn, int* numC
 
 int DocumentWidget::GetTextWidth(QChar text, int column, int* numColumns) {
   if (text == '\t') {
-    int desiredCharacters = (column / spacesPerTab) * spacesPerTab + spacesPerTab;
+    int desiredCharacters = (column / GetSpacesPerTab()) * GetSpacesPerTab() + GetSpacesPerTab();
     *numColumns = desiredCharacters - column;
     return (*numColumns) * charWidth;
   } else {
@@ -2325,7 +2325,7 @@ void DocumentWidget::TabPressed(bool shiftHeld) {
     
     // Perform the insertion or deletion.
     if (!shiftHeld) {
-      int desiredCharacters = (columns / spacesPerTab) * spacesPerTab + spacesPerTab;
+      int desiredCharacters = (columns / GetSpacesPerTab()) * GetSpacesPerTab() + GetSpacesPerTab();
       int numAddedSpaces = desiredCharacters - columns;
       document->Replace(DocumentRange(cursorLoc, cursorLoc), QStringLiteral(" ").repeated(numAddedSpaces));
       SetCursor(cursorLoc + numAddedSpaces, false);
@@ -2334,7 +2334,7 @@ void DocumentWidget::TabPressed(bool shiftHeld) {
       Replace(DocumentRange(cursorLoc - 1, cursorLoc), QStringLiteral(""));
       SetCursor(cursorLoc - 1, false);
     } else {
-      int desiredCharacters = std::max(0, ((columns - 1) / spacesPerTab + 1) * spacesPerTab - spacesPerTab);
+      int desiredCharacters = std::max(0, ((columns - 1) / GetSpacesPerTab() + 1) * GetSpacesPerTab() - GetSpacesPerTab());
       if (desiredCharacters < columns) {
         DocumentRange rangeToRemove(cursorLoc.offset - (columns - desiredCharacters), cursorLoc.offset);
         QString rangeText = document->TextForRange(rangeToRemove);
@@ -2415,7 +2415,7 @@ void DocumentWidget::TabPressed(bool shiftHeld) {
       int numCharacters = it.GetCharacterOffset() - lineStarts[i].offset;
       int desiredSpaces;
       if (!shiftHeld) {
-        desiredSpaces = (columns / spacesPerTab) * spacesPerTab + spacesPerTab;
+        desiredSpaces = (columns / GetSpacesPerTab()) * GetSpacesPerTab() + GetSpacesPerTab();
         int numAddedSpaces = desiredSpaces - columns;
         DocumentLocation spaceEndLocation = lineStarts[i] + numCharacters;
         document->Replace(DocumentRange(spaceEndLocation, spaceEndLocation), QStringLiteral(" ").repeated(numAddedSpaces));
@@ -2425,7 +2425,7 @@ void DocumentWidget::TabPressed(bool shiftHeld) {
         Replace(DocumentRange(lineStarts[i] + numCharacters - 1, lineStarts[i] + numCharacters), QStringLiteral(""));
         lastLineEnd -= 1;
       } else {
-        desiredSpaces = std::max(0, ((columns - 1) / spacesPerTab + 1) * spacesPerTab - spacesPerTab);
+        desiredSpaces = std::max(0, ((columns - 1) / GetSpacesPerTab() + 1) * GetSpacesPerTab() - GetSpacesPerTab());
         if (desiredSpaces < columns) {
           document->Replace(DocumentRange(lineStarts[i] + numCharacters - (columns - desiredSpaces), lineStarts[i] + numCharacters), QStringLiteral(""));
         }
@@ -2615,6 +2615,14 @@ void DocumentWidget::ApplyWordCompletion(const WordCompletion& item) {
   }
   
   update(rect());
+}
+
+int DocumentWidget::GetSpacesPerTab() {
+  if (spacesPerTab != -1) {
+    return spacesPerTab;
+  } else {
+    return Settings::Instance().GetSpacesPerTab();
+  }
 }
 
 void DocumentWidget::resizeEvent(QResizeEvent* /*event*/) {
@@ -3369,7 +3377,7 @@ void DocumentWidget::keyPressEvent(QKeyEvent* event) {
     
     // Apply auto-indent
     if (lastCharacterInPrevLine == '{') {
-      whitespace += QString(" ").repeated(spacesPerTab);
+      whitespace += QString(" ").repeated(GetSpacesPerTab());
     }
     
     // Delete any whitespace characters to the right of the cursor / selection

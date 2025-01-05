@@ -299,6 +299,8 @@ Settings::Settings() {
   AddConfigurableShortcut(tr("Jump to previous bookmark"), jumpToPreviousBookmarkShortcut, QKeySequence(Qt::ALT + Qt::Key_PageUp));
   AddConfigurableShortcut(tr("Jump to next bookmark"), jumpToNextBookmarkShortcut, QKeySequence(Qt::ALT + Qt::Key_PageDown));
   AddConfigurableShortcut(tr("Remove all bookmarks"), removeAllBookmarksShortcut, QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_B));
+  AddConfigurableShortcut(tr("Jump to previous diff"), jumpToPreviousDiffShortcut, QKeySequence(Qt::CTRL + Qt::Key_PageUp));
+  AddConfigurableShortcut(tr("Jump to next diff"), jumpToNextDiffShortcut, QKeySequence(Qt::CTRL + Qt::Key_PageDown));
   AddConfigurableShortcut(tr("Comment out"), commentOutShortcut, QKeySequence(Qt::CTRL + Qt::Key_D));
   AddConfigurableShortcut(tr("Uncomment"), uncommentShortcut, QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_D));
   AddConfigurableShortcut(tr("Invoke code completion"), invokeCodeCompletionShortcut, QKeySequence(Qt::CTRL + Qt::Key_Space));

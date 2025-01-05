@@ -252,6 +252,11 @@ Note that the shortcuts are configurable in the program settings.
 
 &nbsp;
 
+- **Ctrl - PageUp** : Go to next git change above
+- **Ctrl - PageDown** : Go to next git change below
+
+&nbsp;
+
 - **F7** : Compile current build target (selectable in the main window toolbar)
 - **F9** : Debug project
 

@@ -171,6 +171,9 @@ class DocumentWidget : public QWidget {
   void JumpToNextBookmark();
   void RemoveAllBookmarks();
   
+  void JumpToPreviousDiff();
+  void JumpToNextDiff();
+  
   void Comment();
   void Uncomment();
   void UncommentLine(int line);

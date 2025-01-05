@@ -101,6 +101,14 @@ DocumentWidget::DocumentWidget(const std::shared_ptr<Document>& document, Docume
   connect(removeAllBookmarksAction, &QAction::triggered, this, &DocumentWidget::RemoveAllBookmarks);
   addAction(removeAllBookmarksAction);
   
+  QAction* jumpToPreviousDiffAction = new ActionWithConfigurableShortcut(tr("Jump to previous diff"), jumpToPreviousDiffShortcut, this);
+  connect(jumpToPreviousDiffAction, &QAction::triggered, this, &DocumentWidget::JumpToPreviousDiff);
+  addAction(jumpToPreviousDiffAction);
+  
+  QAction* jumpToNextDiffAction = new ActionWithConfigurableShortcut(tr("Jump to next diff"), jumpToNextDiffShortcut, this);
+  connect(jumpToNextDiffAction, &QAction::triggered, this, &DocumentWidget::JumpToNextDiff);
+  addAction(jumpToNextDiffAction);
+  
   QAction* commentAction = new ActionWithConfigurableShortcut(tr("Comment out"), commentOutShortcut, this);
   connect(commentAction, &QAction::triggered, this, &DocumentWidget::Comment);
   addAction(commentAction);
@@ -932,6 +940,32 @@ void DocumentWidget::RemoveAllBookmarks() {
   }
   update(rect());
   BookmarksChanged();
+}
+
+void DocumentWidget::JumpToPreviousDiff() {
+  // TODO: Individual lines of additions seem to be represented as individual entries in diffLines(). Treat adjacent ones as a single block here and in JumpToNextDiff().
+  const std::vector<LineDiff>& diffLines = document->diffLines();
+  for (int diffIdx = static_cast<int>(diffLines.size()) - 1; diffIdx >= 0; --diffIdx) {
+    const auto& diff = diffLines[diffIdx];
+    if (diff.line < cursorLine) {
+      StartMovingCursor();
+      cursorLine = diff.line;
+      EndMovingCursor(false);
+      break;
+    }
+  }
+}
+
+void DocumentWidget::JumpToNextDiff() {
+  // TODO: Individual lines of additions seem to be represented as individual entries in diffLines(). Treat adjacent ones as a single block here and in JumpToPreviousDiff().
+  for (const auto& diff : document->diffLines()) {
+    if (diff.line > cursorLine) {
+      StartMovingCursor();
+      cursorLine = diff.line;
+      EndMovingCursor(false);
+      break;
+    }
+  }
 }
 
 void DocumentWidget::Comment() {

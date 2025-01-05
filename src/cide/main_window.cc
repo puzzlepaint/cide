@@ -231,6 +231,7 @@ MainWindow::MainWindow(QWidget* parent)
   projectMenu->addSeparator();
   currentFileParseSettingsAction = projectMenu->addAction(tr("Parse settings for current file..."), this, &MainWindow::ParseSettingsForCurrentFile);
   currentFileParseIssuesAction = projectMenu->addAction(tr("All parse issues for current file..."), this, &MainWindow::ParseIssuesForCurrentFile);
+  currentFileIncludedFilesAction = projectMenu->addAction(tr("Show all included files..."), this, &MainWindow::ShowAllIncludedFiles);
   projectMenu->addSeparator();
   newProjectAction = projectMenu->addAction(tr("New project..."), [&]() { NewProject(this); });
   openProjectAction = projectMenu->addAction(tr("Open project..."), [&]() { OpenProject(this); });
@@ -965,6 +966,219 @@ void MainWindow::ParseIssuesForCurrentFile() {
   QTextEdit* issuesEdit = new QTextEdit(issuesString);
   issuesEdit->setReadOnly(true);
   layout->addWidget(issuesEdit);
+  
+  QDialogButtonBox* buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok);
+  connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+  layout->addWidget(buttonBox);
+  
+  dialog.setLayout(layout);
+  dialog.resize(std::max(dialog.width(), 800), std::max(dialog.height(), 600));
+  
+  dialog.exec();
+}
+
+static int AppendChildCount(QTreeWidgetItem* item) {
+  if (item->childCount() == 0) {
+    return 1;
+  }
+  
+  int childCount = 0;
+  for (int i = 0; i < item->childCount(); ++ i) {
+    childCount += AppendChildCount(item->child(i));
+  }
+  
+  item->setText(0, item->text(0) + " (" + QString::number(childCount) + ")");
+  
+  return childCount;
+};
+
+void MainWindow::ShowAllIncludedFiles() {
+  TabData* tab = GetCurrentTabData();
+  if (!tab) {
+    return;
+  }
+  
+  // Obtain a libclang TU for the current file
+  QEventLoop waitEventLoop;
+  
+  QProgressDialog progress(tr("Retrieving included files ..."), tr("Abort"), 0, 0, this);
+  progress.setMinimumDuration(200);
+  progress.setValue(0);
+  progress.setWindowModality(Qt::WindowModal);
+  
+  // Wait for all parses of this document to finish
+  while (true) {
+    if (!ParseThreadPool::Instance().DoesAParseRequestExistForDocument(tab->document.get()) &&
+        !ParseThreadPool::Instance().IsDocumentBeingParsed(tab->document.get())) {
+      break;
+    }
+    
+    QThread::msleep(10);
+    progress.setValue(0);
+    waitEventLoop.processEvents();
+    if (progress.wasCanceled()) {
+      return;
+    }
+  }
+  
+  // Wait until we get the document's most up-to-date TU.
+  std::shared_ptr<ClangTU> TU;
+  while (true) {
+    TU = tab->document->GetTUPool()->TakeMostUpToDateTU();
+    if (TU) {
+      break;
+    }
+    
+    QThread::msleep(10);
+    progress.setValue(0);
+    waitEventLoop.processEvents();
+    if (progress.wasCanceled()) {
+      return;
+    }
+  }
+  
+  // Hide the progress dialog (progress.hide() does not work)
+  progress.setMaximum(1);
+  progress.setValue(1);
+  
+  if (!TU->isInitialized()) {
+    tab->document->GetTUPool()->PutTU(TU, false);
+    QMessageBox::warning(this, tr("Error"), tr("This file has not been parsed, thus no parse results can be shown."));
+    return;
+  }
+  
+  // Compute a de-duplicated ordered set of all canonical paths to included files
+  std::set<QString> includes;
+  
+  for (const auto& include : TU->GetIncludes()) {
+    if (include.path != tab->document->path()) {
+      includes.insert(QFileInfo(include.path).canonicalFilePath());
+    }
+  }
+  
+  // To create a flat list of all included files (TODO: Make a toggle to view either this or the tree view):
+  // QString includesString = QStringLiteral("");
+  // 
+  // for (const auto& include : includes) {
+  //   if (!includesString.isEmpty()) {
+  //     includesString += "<br/>";
+  //   }
+  //   includesString += include.toHtmlEscaped();
+  // }
+  
+  // Find common prefixes to create a tree of the included files
+  QTreeWidget* includeTreeWidget = new QTreeWidget();
+  includeTreeWidget->setColumnCount(1);
+  includeTreeWidget->setHeaderHidden(true);
+  
+  QTreeWidgetItem* lastRootItem = nullptr;
+  int curTreeWidgetIndex = 0;
+  
+  std::vector<QString> includesArray(includes.begin(), includes.end());
+  std::vector<QStringList> pathArray(includesArray.size());
+  for (size_t i = 0; i < includesArray.size(); ++ i) {
+    pathArray[i] = includesArray[i].split('/');
+  }
+  
+  for (size_t i = 0; i < pathArray.size(); ++ i) {
+    const auto& includeI = pathArray[i];
+    
+    QTreeWidgetItem* itemParent = nullptr;
+    int treeItemStartComponent = 0;
+    size_t c = 0;
+    size_t treeItemEnd = pathArray.size();
+    
+    // Seek into the current state of the tree
+    QTreeWidgetItem* lastItem = lastRootItem;
+    while (lastItem != nullptr) {
+      QStringList lastItemPath = lastItem->data(0, Qt::UserRole).toStringList();
+      if (!includeI.join('/').startsWith(lastItemPath.join('/'))) {
+        break;
+      }
+      
+      itemParent = lastItem;
+      lastItem = (lastItem->childCount() > 0) ? lastItem->child(lastItem->childCount() - 1) : nullptr;
+    }
+    
+    if (itemParent != nullptr) {
+      treeItemEnd = itemParent->data(0, Qt::UserRole + 1).toULongLong();
+      treeItemStartComponent = itemParent->data(0, Qt::UserRole).toStringList().size();
+      c = treeItemStartComponent + 1;
+      while (treeItemEnd > i + 1 && (pathArray[treeItemEnd - 1].size() <= c || !includeI.join('/').startsWith(pathArray[treeItemEnd - 1].mid(0, c).join('/')))) {
+        -- treeItemEnd;
+      }
+    }
+    
+    // Add the tree non-leaf nodes
+    for (; c < includeI.size(); ++ c) {
+      const QString& component = includeI.at(c);
+      
+      for (size_t k = i + 1; k < treeItemEnd; ++ k) {
+        const auto& includeK = pathArray[k];
+        
+        if (includeK.size() > c && includeK.at(c) == component) {
+          // Add includeK under the same tree item as includeI, up to component c
+        } else {
+          // includeK starts to differ at component c.
+          // if (treeItemEnd != k) {
+            // Create a new tree item
+            QTreeWidgetItem* item = new QTreeWidgetItem(itemParent, QStringList(includeI.mid(treeItemStartComponent, c - treeItemStartComponent).join('/')));
+            item->setData(0, Qt::UserRole, QVariant(includeI.mid(0, c)));
+            item->setData(0, Qt::UserRole + 1, QVariant(static_cast<qulonglong>(treeItemEnd)));
+            
+            if (itemParent == nullptr) {
+              includeTreeWidget->insertTopLevelItem(curTreeWidgetIndex, item);
+              ++ curTreeWidgetIndex;
+              lastRootItem = item;
+              item->setExpanded(true);
+            }
+            
+            treeItemStartComponent = c;
+            itemParent = item;
+            treeItemEnd = k;
+          // }
+          break;
+        }
+      }
+    }
+    
+    // Add the tree leaf node
+    QTreeWidgetItem* item = new QTreeWidgetItem(itemParent, QStringList(includeI.mid(treeItemStartComponent).join('/')));
+    item->setData(0, Qt::UserRole, QVariant(includeI));
+    item->setData(0, Qt::UserRole + 1, QVariant(static_cast<qulonglong>(treeItemEnd)));
+    
+    if (itemParent == nullptr) {
+      includeTreeWidget->insertTopLevelItem(curTreeWidgetIndex, item);
+      ++ curTreeWidgetIndex;
+      lastRootItem = item;
+      item->setExpanded(true);
+    }
+  }
+  
+  // For each tree item, append the number of children
+  for (int i = 0; i < includeTreeWidget->topLevelItemCount(); ++ i) {
+    AppendChildCount(includeTreeWidget->topLevelItem(i));
+  }
+  
+  // Return the document's TU.
+  tab->document->GetTUPool()->PutTU(TU, false);
+  
+  // Show the obtained included files.
+  QDialog dialog(this);
+  dialog.setWindowTitle(tr("Included files for: %1").arg(tab->document->path()));
+  dialog.setWindowIcon(QIcon(":/cide/cide.png"));
+  
+  QVBoxLayout* layout = new QVBoxLayout();
+  QLabel* descriptionLabel = new QLabel(tr(
+      "This shows <b>all</b> %1 included files for the current file, including transitive includes.").arg(includes.size()));
+  descriptionLabel->setWordWrap(true);
+  layout->addWidget(descriptionLabel);
+  
+  // QTextEdit* includesEdit = new QTextEdit(includesString);
+  // includesEdit->setReadOnly(true);
+  // layout->addWidget(includesEdit);
+  
+  layout->addWidget(includeTreeWidget);
   
   QDialogButtonBox* buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok);
   connect(buttonBox, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
@@ -1997,6 +2211,7 @@ void MainWindow::CurrentTabChanged(int /*index*/) {
   closeAction->setEnabled(tabData != nullptr);
   currentFileParseSettingsAction->setEnabled(tabData != nullptr && isAnyProjectOpen);
   currentFileParseIssuesAction->setEnabled(tabData != nullptr && isAnyProjectOpen);
+  currentFileIncludedFilesAction->setEnabled(tabData != nullptr && isAnyProjectOpen);
   
   CurrentOrOpenDocumentsChanged();
   
@@ -2203,6 +2418,7 @@ void MainWindow::OpenProjectsChangedSlot() {
   projectSettingsAction->setEnabled(isAnyProjectOpen);
   currentFileParseSettingsAction->setEnabled(tabData != nullptr && isAnyProjectOpen);
   currentFileParseIssuesAction->setEnabled(tabData != nullptr && isAnyProjectOpen);
+  currentFileIncludedFilesAction->setEnabled(tabData != nullptr && isAnyProjectOpen);
   newProjectAction->setEnabled(!isAnyProjectOpen);
   openProjectAction->setEnabled(!isAnyProjectOpen);
   closeProjectAction->setEnabled(isAnyProjectOpen);

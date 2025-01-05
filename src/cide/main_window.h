@@ -137,6 +137,7 @@ class MainWindow : public QMainWindow {
   void ShowProjectSettings();
   void ParseSettingsForCurrentFile();
   void ParseIssuesForCurrentFile();
+  void ShowAllIncludedFiles();
   /// Shows the new-project dialog.
   bool NewProject(QWidget* parent);
   /// Lets the user open a project.
@@ -236,6 +237,7 @@ class MainWindow : public QMainWindow {
   QAction* projectSettingsAction;
   QAction* currentFileParseSettingsAction;
   QAction* currentFileParseIssuesAction;
+  QAction* currentFileIncludedFilesAction;
   QAction* newProjectAction;
   QAction* openProjectAction;
   QAction* closeProjectAction;

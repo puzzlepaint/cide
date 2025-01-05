@@ -1964,9 +1964,12 @@ void MainWindow::CurrentTabChanged(int /*index*/) {
   
   TabData* tabData = GetCurrentTabData();
   if (tabData) {
-    documentLayout->setCurrentWidget(tabData->container);
-    
+    // Calling documentLayout->setCurrentWidget() below can make the focus go away from the current document widget if it is there.
+    // If the focus goes to the search bar or to the build target list widget, then this can cause these widgets to pop up their drop-down list.
+    // To avoid this, already set the focus on the new document widget before switching away from the old one.
     tabData->widget->setFocus(Qt::OtherFocusReason);
+    
+    documentLayout->setCurrentWidget(tabData->container);
     
     // Try to have the search bar and similar widgets always behind the current editor widget. This
     // is an attempt to avoid the problem that sometimes, when the focus went

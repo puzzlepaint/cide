@@ -347,10 +347,34 @@ void DocumentWidgetContainer::DocumentCursorMoved() {
 
 void DocumentWidgetContainer::FileChangedExternally() {
   auto& document = mDocumentWidget->GetDocument();
-  QFileInfo fileInfo(document->path());
-  if (!fileInfo.exists()) {
+  QFile file(document->path());
+  
+  if (!file.open(QIODevice::ReadOnly)) {
+    // TODO: Should we watch the document's containing directory in this case, and act if a new file gets created at the document's path in the future?
+    //       In particular, if the new file's content ends up being the same as the document's content, we could drop the file-deleted notification again,
+    //       analogous to the case below where we avoid showing the file-modified notification.
     SetMessage(MessageType::ExternalModificationNotification, tr("This file has been deleted externally."));
   } else {
+    // Sometimes, external applications trigger the file-changed signal without actually changing the file's contents.
+    // In case the user does not have unsaved changes, detect these cases automatically to prevent showing
+    // the file-modified notification then.
+    // TODO: If the user does have unsaved changes, we should still do this, but compare the file contents from disk to the last saved version from the document.
+    if (!document->HasUnsavedChanges()) {
+      QString text = document->TextForRange(document->FullDocumentRange());
+      if (document->newlineFormat() == NewlineFormat::CrLf) {
+        text.replace(QStringLiteral("\n"), QStringLiteral("\r\n"));
+      }
+      QByteArray utf8Data = text.toUtf8();  // TODO: Support other encodings than UTF-8 only
+      
+      QByteArray readUtf8Data(utf8Data.size() + 1, 0);
+      if (file.read(readUtf8Data.data(), readUtf8Data.size()) == utf8Data.size() &&
+          memcmp(readUtf8Data.data(), utf8Data.data(), utf8Data.size()) == 0) {
+        // The new file content is equal to the old file content.
+        // qDebug() << "Ignoring file change since the contents are equal to the document contents";
+        return;
+      }
+    }
+    
     SetMessage(MessageType::ExternalModificationNotification, tr("This file has been modified externally."));
   }
 }

@@ -109,51 +109,99 @@ set(CIDEBaseLib_SRC
   ${CMAKE_BINARY_DIR}/CIDE_git_version.h
   
   src/cide/about_dialog.cc
+  src/cide/about_dialog.h
   src/cide/argument_hint_widget.cc
+  src/cide/argument_hint_widget.h
   src/cide/build_target_list_widget.cc
+  src/cide/build_target_list_widget.h
   src/cide/build_target_selector.cc
+  src/cide/build_target_selector.h
   src/cide/clang_highlighting.cc
+  src/cide/clang_highlighting.h
   src/cide/clang_index.cc
-  src/cide/clang_tu_pool.cc
-  src/cide/clang_utils.cc
-  src/cide/code_completion_widget.cc
-  src/cide/code_info.cc
-  src/cide/code_info_code_completion.cc
-  src/cide/code_info_get_info.cc
-  src/cide/code_info_get_right_click_info.cc
-  src/cide/code_info_goto_referenced_cursor.cc
-  src/cide/cpp_utils.cc
-  src/cide/crash_backup.cc
-  src/cide/create_class.cc
-  src/cide/document.cc
-  src/cide/document_range.cc
-  src/cide/document_widget.cc
-  src/cide/document_widget_container.cc
-  src/cide/find_and_replace_in_files.cc
-  src/cide/git_diff.cc
-  src/cide/glsl_highlighting.cc
-  src/cide/glsl_parser.cc
-  src/cide/main_window.cc
-  src/cide/new_project_dialog.cc
-  src/cide/parse_thread_pool.cc
+  src/cide/clang_index.h
   src/cide/clang_parser.cc
+  src/cide/clang_parser.h
+  src/cide/clang_tu_pool.cc
+  src/cide/clang_tu_pool.h
+  src/cide/clang_utils.cc
+  src/cide/clang_utils.h
+  src/cide/code_completion_widget.cc
+  src/cide/code_completion_widget.h
+  src/cide/code_info.cc
+  src/cide/code_info.h
+  src/cide/code_info_code_completion.cc
+  src/cide/code_info_code_completion.h
+  src/cide/code_info_get_info.cc
+  src/cide/code_info_get_info.h
+  src/cide/code_info_get_right_click_info.cc
+  src/cide/code_info_get_right_click_info.h
+  src/cide/code_info_goto_referenced_cursor.cc
+  src/cide/code_info_goto_referenced_cursor.h
+  src/cide/cpp_utils.cc
+  src/cide/cpp_utils.h
+  src/cide/crash_backup.cc
+  src/cide/crash_backup.h
+  src/cide/create_class.cc
+  src/cide/create_class.h
+  src/cide/document.cc
+  src/cide/document.h
+  src/cide/document_location.h
+  src/cide/document_range.cc
+  src/cide/document_range.h
+  src/cide/document_widget.cc
+  src/cide/document_widget.h
+  src/cide/document_widget_container.cc
+  src/cide/document_widget_container.h
+  src/cide/find_and_replace_in_files.cc
+  src/cide/find_and_replace_in_files.h
+  src/cide/git_diff.cc
+  src/cide/git_diff.h
+  src/cide/glsl_highlighting.cc
+  src/cide/glsl_highlighting.h
+  src/cide/glsl_parser.cc
+  src/cide/glsl_parser.h
+  src/cide/main_window.cc
+  src/cide/main_window.h
+  src/cide/new_project_dialog.cc
+  src/cide/new_project_dialog.h
+  src/cide/parse_thread_pool.cc
+  src/cide/parse_thread_pool.h
   src/cide/problem.cc
+  src/cide/problem.h
   src/cide/project.cc
+  src/cide/project.h
   src/cide/project_settings.cc
+  src/cide/project_settings.h
   src/cide/project_tree_view.cc
+  src/cide/project_tree_view.h
   src/cide/qt_help.cc
+  src/cide/qt_help.h
   src/cide/qt_thread.cc
+  src/cide/qt_thread.h
   src/cide/rename_dialog.cc
+  src/cide/rename_dialog.h
   src/cide/run_gdb.cc
+  src/cide/run_gdb.h
   src/cide/scroll_bar_minimap.cc
+  src/cide/scroll_bar_minimap.h
   src/cide/search_bar.cc
+  src/cide/search_bar.h
   src/cide/search_list_widget.cc
+  src/cide/search_list_widget.h
   src/cide/settings.cc
+  src/cide/settings.h
   src/cide/startup_dialog.cc
+  src/cide/startup_dialog.h
   src/cide/tab_bar.cc
+  src/cide/tab_bar.h
   src/cide/text_block.cc
+  src/cide/text_block.h
   src/cide/text_utils.cc
+  src/cide/text_utils.h
   src/cide/util.cc
+  src/cide/util.h
+  src/cide/version.h
 )
 # Not sure why this bad workaround is needed on Windows, maybe the functions
 # in this part of glslang lack the dllexport pragma?

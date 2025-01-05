@@ -294,10 +294,10 @@ set(CIDE_SRCS
   resources_packed/resources.qrc
 )
 if (WIN32)
-  set(CIDE_SRCS
-    ${CIDE_SRCS}
-    resources_packed/cide.rc
-  )
+  set(CIDE_SRCS ${CIDE_SRCS} resources_packed/cide.rc)
+endif()
+if (APPLE)
+  set(CIDE_SRCS ${CIDE_SRCS} resources_packed/cide.icns)
 endif()
 add_executable(CIDE WIN32
   ${CIDE_SRCS}
@@ -314,6 +314,8 @@ if (APPLE)
     COPY ${CMAKE_CURRENT_SOURCE_DIR}/resources
     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/CIDE.app/Contents/MacOS
   )
+  set(MACOSX_BUNDLE_ICON_FILE cide.icns)
+  set_source_files_properties(resources_packed/cide.icns PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
 else()
   file(
     COPY ${CMAKE_CURRENT_SOURCE_DIR}/resources

@@ -10,6 +10,11 @@ TabBar::TabBar(QWidget* parent)
     : QTabBar(parent) {
   contextMenu = new QMenu(this);
   
+  copyFilePathAction = contextMenu->addAction(tr("Copy file path"));
+  connect(copyFilePathAction, &QAction::triggered, this, &TabBar::CopyFilePathClicked);
+  
+  contextMenu->addSeparator();
+  
   closeAction = contextMenu->addAction(tr("Close"));
   connect(closeAction, &QAction::triggered, this, &TabBar::CloseTabClicked);
   
@@ -36,6 +41,10 @@ void TabBar::mousePressEvent(QMouseEvent* event) {
   }
   
   QTabBar::mousePressEvent(event);
+}
+
+void TabBar::CopyFilePathClicked() {
+  emit CopyFilePath(currentIndexForMenu);
 }
 
 void TabBar::CloseTabClicked() {

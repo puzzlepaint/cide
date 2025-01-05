@@ -14,6 +14,7 @@ class TabBar : public QTabBar {
   TabBar(QWidget* parent = nullptr);
   
  signals:
+  void CopyFilePath(int index);
   void CloseAllOtherTabs(int index);
   void CloseAllTabs();
   
@@ -21,6 +22,7 @@ class TabBar : public QTabBar {
   void mousePressEvent(QMouseEvent* event) override;
   
  private slots:
+  void CopyFilePathClicked();
   void CloseTabClicked();
   void CloseAllOtherTabsClicked();
   void CloseAllTabsClicked();
@@ -29,6 +31,7 @@ class TabBar : public QTabBar {
   int currentIndexForMenu;
   
   QMenu* contextMenu;
+  QAction* copyFilePathAction;
   QAction* closeAction;
   QAction* closeAllOthersAction;
   QAction* closeAllAction;

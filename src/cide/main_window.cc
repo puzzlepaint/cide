@@ -5,12 +5,14 @@
 #include "main_window.h"
 
 #include <QBoxLayout>
+#include <QClipboard>
 #include <QCloseEvent>
 #include <QComboBox>
 #include <QDialogButtonBox>
 #include <QDockWidget>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QListWidget>
 #include <QMenu>
 #include <QMenuBar>
@@ -100,6 +102,7 @@ MainWindow::MainWindow(QWidget* parent)
   
   documentLayout = new QStackedLayout();
   
+  connect(tabBar, &TabBar::CopyFilePath, this, &MainWindow::CopyFilePath);
   connect(tabBar, &TabBar::tabCloseRequested, this, QOverload<int>::of(&MainWindow::CloseDocument));
   connect(tabBar, &TabBar::CloseAllOtherTabs, this, &MainWindow::CloseAllOtherDocuments);
   connect(tabBar, &TabBar::CloseAllTabs, this, &MainWindow::CloseAllDocuments);
@@ -618,6 +621,18 @@ void MainWindow::SaveAs() {
   }
   
   SaveAs(tabData);
+}
+
+void MainWindow::CopyFilePath(int tabIndex) {
+  int tabDataIndex = tabBar->tabData(tabIndex).toInt();
+  auto tabIt = tabs.find(tabDataIndex);
+  if (tabIt == tabs.end()) {
+    qDebug() << "Error: MainWindow::CloseDocument(): Did not find the tab data of the document to be closed.";
+    return;
+  }
+  TabData& tabData = tabIt->second;
+  
+  QGuiApplication::clipboard()->setText(tabData.document->path(), QClipboard::Clipboard);
 }
 
 void MainWindow::CloseDocument() {

@@ -98,6 +98,7 @@ class MainWindow : public QMainWindow {
   void Open(const QString& path);
   void Save();
   void SaveAs();
+  void CopyFilePath(int tabIndex);
   void CloseDocument();
   void CloseDocument(int tabIndex);
   void CloseAllOtherDocuments(int tabIndex);
